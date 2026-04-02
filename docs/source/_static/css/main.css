@@ -1,0 +1,84 @@
+.wiki-img, .wiki-img-dark, .wiki-img-light {
+    width: 90%;
+    margin: 5px 0px;
+    border-radius: 5px;
+    border-style: solid;
+    border-color: #343a40;
+    border-width: 3px;
+}
+
+.wiki-img-sm, .wiki-img-sm-dark, .wiki-img-sm-light {
+    width: 60%;
+    margin-left: 10%;
+    margin: 5px 0px;
+    border-radius: 5px;
+    border-style: solid;
+    border-color: #343a40;
+    border-width: 3px;
+}
+
+.wiki-img-xs, .wiki-img-xs-dark, .wiki-img-xs-light {
+    width: 35%;
+    margin-left: 25%;
+    margin: 5px 0px;
+    border-radius: 5px;
+    border-style: solid;
+    border-color: #343a40;
+    border-width: 3px;
+}
+
+@media (max-width: 768px){
+    .wiki-img, .wiki-img-dark, .wiki-img-light {
+        width: 95%;
+    }
+
+    .wiki-img-sm, .wiki-img-sm-dark, .wiki-img-sm-light {
+        margin-left: 5%;
+        width: 85%;
+    }
+
+    .wiki-img-xs, .wiki-img-xs-dark, .wiki-img-xs-light {
+        margin-left: 10%;
+        width: 65%;
+    }
+}
+
+
+body[data-md-color-media="(prefers-color-scheme: dark)"] .wiki-img-light {
+    display: none;
+}
+body[data-md-color-media="(prefers-color-scheme: dark)"] .wiki-img-dark {
+    display: inline;
+}
+body[data-md-color-media="(prefers-color-scheme: light)"] .wiki-img-dark {
+    display: none;
+}
+body[data-md-color-media="(prefers-color-scheme: light)"] .wiki-img-light {
+    display: inline;
+}
+
+body[data-md-color-media="(prefers-color-scheme: dark)"] .wiki-img-sm-light {
+    display: none;
+}
+body[data-md-color-media="(prefers-color-scheme: dark)"] .wiki-img-sm-dark {
+    display: inline;
+}
+body[data-md-color-media="(prefers-color-scheme: light)"] .wiki-img-sm-dark {
+    display: none;
+}
+body[data-md-color-media="(prefers-color-scheme: light)"] .wiki-img-sm-light {
+    display: inline;
+}
+
+body[data-md-color-media="(prefers-color-scheme: dark)"] .wiki-img-xs-light {
+    display: none;
+}
+body[data-md-color-media="(prefers-color-scheme: dark)"] .wiki-img-xs-dark {
+    display: inline;
+}
+body[data-md-color-media="(prefers-color-scheme: light)"] .wiki-img-xs-dark {
+    display: none;
+}
+body[data-md-color-media="(prefers-color-scheme: light)"] .wiki-img-xs-light {
+    display: inline;
+}

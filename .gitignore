@@ -1,0 +1,17 @@
+# dev
+.idea/
+venv/
+.venv/
+__pychache__.py
+__pychache__
+VERSION
+.coverage
+.coverage.*
+
+# build
+dist/*.whl
+dist/*.tar.gz
+oxl_ansible_runner_minimal.egg-info/
+docs/build/
+docs/source/_static/img/*.png
+docs/source/_static/img/*.jpg

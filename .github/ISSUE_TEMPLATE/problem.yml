@@ -1,0 +1,53 @@
+---
+
+name: Problem
+description: You have encountered problems when using the modules
+title: "Problem: "
+labels: ['problem', 'triage']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please make sure to go through these steps **before opening an issue**:
+
+        - [ ] Read the documentation: [Docs](https://ansible-runner-minimal.OXL.app/)
+
+        - [ ] Check if there are existing [issues](https://github.com/O-X-L/ansible-runner-minimal/issues)
+        or [discussions](https://github.com/O-X-L/ansible-runner-minimal/discussions) regarding your topic
+
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: |
+        Provide your system versions.
+        * OS version
+        * Python3 version
+        * Ansible-core version
+
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: What section isn't working as expected?
+      options:
+        - Unknown
+        - Config
+        - Job Execution in container
+        - Job Execution locally
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Issue
+      description: |
+        Describe the problem you encountered and tell us what you would have expected to happen
+    validations:
+      required: true
