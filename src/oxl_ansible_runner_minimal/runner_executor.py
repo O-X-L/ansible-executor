@@ -37,12 +37,15 @@ class ExecutorBase(ABC):
         cmd = self.generate_engine_command()
         log(f'Command: {cmd}')
 
+        result = self._execute_command(cmd)
         # todo: subprocess execution
         # todo: process-monitor loop
         # todo: act on stop-signal
         # todo: add status-infos as attributes (for exec-status)
 
-        sleep(30)
+    @abstractmethod
+    def _execute_command(self, cmd: list[str]) -> dict:
+        raise NotImplementedError('Command-execution has to be implemented!')
 
     @abstractmethod
     def generate_engine_command(self) -> list[str]:
@@ -134,11 +137,34 @@ class ExecutorBase(ABC):
 
 
 class ExecutorLocal(ExecutorBase):
+    def _engine_init(self):
+        self.engine_executable = self._get_engine_executable()
+
+    @staticmethod
+    def _get_engine_executable() -> str:
+        executable = find_executable('ansible-playbook')
+        if executable is not None:
+            return executable
+
+        return 'ansible-playbook'
+
     def generate_engine_command(self) -> list[str]:
-        return self.generate_ansible_command()
+        cmd = self.generate_ansible_command()
+        cmd[0] = self.engine_executable
+        return cmd
 
     def prepare_engine(self):
         pass
+
+    def _execute_command(self, cmd: list[str]) -> dict:
+        # todo: allow process to be stopped via signal
+        return process(
+            cmd=cmd,
+            cwd=self.config.playbook_dir,
+            timeout_sec=self.config.timeout_sec_run,
+            env=self.config.env_vars,
+            env_remove=self.config.env_vars_strip,
+        )
 
 
 class ExecutorContainer(ExecutorBase):
@@ -161,6 +187,7 @@ class ExecutorContainer(ExecutorBase):
         self._pull_container_image()
 
     def _pull_container_image(self):
+        # todo: log output to log-files
         image_pull = process(
             cmd=[self.engine_executable, 'image', 'pull', self.config.container_image],
             timeout_sec=3 * 60,
@@ -182,6 +209,10 @@ class ExecutorContainer(ExecutorBase):
 
     def generate_engine_command(self) -> list[str]:
         raise NotImplementedError('Engine command has to be implemented!')
+
+    def _execute_command(self, cmd: list[str]) -> dict:
+        sleep(30)
+        return {}
 
 
 class ExecutorContainerDocker(ExecutorContainer):

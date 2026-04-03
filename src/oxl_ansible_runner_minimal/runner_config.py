@@ -78,6 +78,12 @@ class ExecutionConfig:
 
             Ansible docs: https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/env_lookup.html
 
+        env_vars_strip:
+            Only relevant for local executors.
+            As a local executor inherits the environmental-variables of the runner-process, there may be situations
+                where have to strip/hide some of them. (p.e. secret values)
+            List of env-var-names to strip.
+
         cmd_args:
             List of arguments or simple string (string is not recommended).
             Usage of it is discouraged! It may lead to unexpected behavior!
@@ -225,6 +231,7 @@ class ExecutionConfig:
 
             extra_vars: dict = None,
             env_vars: dict = None,
+            env_vars_strip: list[str] = None,
             cmd_args: (str, list[str]) = None,
 
             ssh_key_file: (str, Path) = None,
@@ -270,6 +277,7 @@ class ExecutionConfig:
 
         self.extra_vars = extra_vars
         self.env_vars = env_vars
+        self.env_vars_strip = env_vars_strip
         self.cmd_args = self._build_cmd_args(cmd_args)
 
         self.connect_user = connect_user
@@ -445,6 +453,7 @@ class ExecutionConfig:
         self._validate_verbosity()
         self._validate_bools()
         self._validate_dicts()
+        self._validate_lists()
         self._validate_times()
         self._validate_log_file_settings()
         self._validate_cmd_args()
@@ -565,6 +574,10 @@ class ExecutionConfig:
             value = getattr(self, attr)
             if value is not None and not isinstance(value, dict):
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be dict)")
+
+    def _validate_lists(self):
+        if self.env_vars_strip is not None and not isinstance(self.env_vars_strip, list):
+            raise ConfigError(f"Got bad type for 'env_vars_strip': '{type(self.env_vars_strip)}' (should be list)")
 
     def _validate_times(self):
         for attr in ['timeout_sec_run', 'timeout_sec_start']:
