@@ -1,5 +1,7 @@
 LOG_TIME_FORMAT = '%Y-%m-%d %H:%M:%S %z'
+FALLBACK_CONTAINER_IMAGE = 'oxlorg/ansible-executor'
+
+# names AND cli-executable
 CONTAINER_ENGINE_DOCKER = 'docker'
 CONTAINER_ENGINE_PODMAN = 'podman'
 CONTAINER_ENGINES = (CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN)
-FALLBACK_CONTAINER_IMAGE = 'oxlorg/ansible-executor'

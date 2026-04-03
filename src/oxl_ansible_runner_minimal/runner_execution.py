@@ -8,7 +8,7 @@ from shutil import chown, rmtree
 from runner_config import ExecutionConfig
 from exceptions import PreparationError
 from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN
-from runner_executor import ExecutorLocal, ExecutorContainerDocker, ExecutorContainerPodman
+from runner_executor import ExecutorLocal, ExecutorContainerDocker, ExecutorContainerPodman, ExecutorBase
 from utils.debug import log
 from utils.util import get_random_str
 from utils.filesystem import write_file_with_mode, overwrite_and_delete_file
@@ -40,12 +40,14 @@ class ExecutionStatus:
 
 
 class Execution:
+    # pylint: disable=R0902
     def __init__(self, config: ExecutionConfig):
         self.config = config
 
         self.status = ExecutionStatus()
         self.__started = False
         self.signal_stop = False
+        self._executor: ExecutorBase = None
 
         self.__cleaned_up = False
         self._prepare()
@@ -81,26 +83,36 @@ class Execution:
     def _before(self):
         self._copy_ssh_known_hosts_file()
         self._create_log_files()
+        self._get_executor()
+        self._prepare_executor()
         self._create_secret_pipes()
 
-    def _execute(self):
+    def _get_executor(self):
         executor = ExecutorLocal
+        name = 'local'
         if self.config.containerized:
             if self.config.container_engine == CONTAINER_ENGINE_DOCKER:
                 executor = ExecutorContainerDocker
+                name = 'docker'
 
             elif self.config.container_engine == CONTAINER_ENGINE_PODMAN:
                 executor = ExecutorContainerPodman
+                name = 'podman'
 
-        e = executor(
+        self._executor = executor(
             config=self.config,
             pipe_ssh_key=self.__secret_pipe_ssh_key,
             pipe_connect_pass=self.__secret_pipe_connect_pass,
             pipe_become_pass=self.__secret_pipe_become_pass,
             pipe_vault_pass=self.__secret_pipe_vault_pass,
         )
-        e.execute()
+        log(f"Using executor: {name}")
 
+    def _prepare_executor(self):
+        self._executor.prepare_engine()
+
+    def _execute(self):
+        self._executor.execute()
         # todo: update execution-status
 
     def _after(self):

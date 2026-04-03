@@ -14,14 +14,24 @@ def _open_file_0640(path: (str, Path), flags):
     return open_file(path, flags, 0o640)
 
 
+def _open_file_0660(path: (str, Path), flags):
+    return open_file(path, flags, 0o660)
+
+
 def _open_file_0644(path: (str, Path), flags):
     return open_file(path, flags, 0o644)
+
+
+def _open_file_0664(path: (str, Path), flags):
+    return open_file(path, flags, 0o664)
 
 
 FILE_WRITE_MODES = {
     0o600: _open_file_0600,
     0o640: _open_file_0640,
     0o644: _open_file_0640,
+    0o660: _open_file_0660,
+    0o664: _open_file_0664,
 }
 
 def write_file_with_mode(file: (str, Path), content: str, file_mode: int):

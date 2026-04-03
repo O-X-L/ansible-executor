@@ -33,9 +33,6 @@ class ExecutorBase(ABC):
         pass
 
     def execute(self):
-        log('Preparing for execution')
-        self.prepare_engine()
-
         log('Executing ansible-playbook')
         cmd = self.generate_engine_command()
         log(f'Command: {cmd}')
@@ -102,6 +99,10 @@ class ExecutorBase(ABC):
         if self.config.become_user is not None:
             cmd.extend(['--become-user', self.config.become_user])
 
+        if self.config.vault_id is not None:
+            for vault_id in self.config.vault_id:
+                cmd.extend(['--vault-id', vault_id])
+
         cmd.extend(self._generate_secret_cmd_args())
 
         if self.config.cmd_args is not None:
@@ -162,7 +163,7 @@ class ExecutorContainer(ExecutorBase):
     def _pull_container_image(self):
         image_pull = process(
             cmd=[self.engine_executable, 'image', 'pull', self.config.container_image],
-            timeout_sec=self.config.timeout_sec_start,
+            timeout_sec=3 * 60,
         )
         if image_pull['rc'] == 0:
             return
