@@ -40,7 +40,8 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
     ]
 )
 def test_runner_executor_generate_command(kwargs: dict, args: str):
-    from runner_executor import ExecutionConfig, ExecutorLocal
+    from runner_config import ExecutionConfig
+    from runner_executor_local import ExecutorLocal
 
     c = ExecutionConfig(**kwargs)
     e = ExecutorLocal(c)

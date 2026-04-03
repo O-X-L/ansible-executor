@@ -10,7 +10,8 @@ from json import dumps as json_dumps
 from runner_config import ExecutionConfig
 from exceptions import PreparationError
 from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN
-from runner_executor import ExecutorLocal, ExecutorContainerDocker, ExecutorContainerPodman, ExecutorBase
+from runner_executor_local import ExecutorBase, ExecutorLocal
+from runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman
 from utils.debug import log
 from utils.util import get_random_str
 from utils.filesystem import write_file_with_mode, overwrite_and_delete_file
