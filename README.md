@@ -33,7 +33,7 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
 ## Usage
 
 ```python3
-from oxl_ansible_runner_minimal import Execution, ExecutionConfig
+from oxl_ansible_runner import Execution, ExecutionConfig
 
 c = ExecutionConfig(
   playbook_dir='/home/abc/ansible/',
