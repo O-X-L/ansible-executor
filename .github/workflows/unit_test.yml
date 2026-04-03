@@ -39,7 +39,7 @@ jobs:
         with:
           python-version: '3.14'
 
-      - name: Install backend dependencies
+      - name: Install dependencies
         run: |
           pip install -r requirements.txt >/dev/null
           pip install -r requirements_unit_test.txt >/dev/null
