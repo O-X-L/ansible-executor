@@ -44,9 +44,8 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
 def test_runner_execution_before(kwargs: dict, args: str):
     from runner_execution import ExecutionConfig, Execution
 
-    c = ExecutionConfig(**kwargs)
-    e = Execution(c)
+    e = Execution(ExecutionConfig(**kwargs))
     e._before()
 
-    assert isinstance(c.log_stdout_file, Path)
-    assert isinstance(c.log_stderr_file, Path)
+    assert isinstance(e.config.log_stdout_file, Path)
+    assert isinstance(e.config.log_stderr_file, Path)

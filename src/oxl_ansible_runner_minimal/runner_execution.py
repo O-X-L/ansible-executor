@@ -1,9 +1,11 @@
 import os
+from time import time
 from pathlib import Path
+from copy import deepcopy
 from threading import Thread
 from tempfile import mkdtemp
-from time import sleep, time
 from shutil import chown, rmtree
+from json import dumps as json_dumps
 
 from runner_config import ExecutionConfig
 from exceptions import PreparationError
@@ -12,17 +14,6 @@ from runner_executor import ExecutorLocal, ExecutorContainerDocker, ExecutorCont
 from utils.debug import log
 from utils.util import get_random_str
 from utils.filesystem import write_file_with_mode, overwrite_and_delete_file
-
-
-def _close_secret_pipes_after_read(wait_sec: int, fds: list):
-    sleep(wait_sec)
-    log('Closing secret-pipes (start_pipe_block_sec)')
-    for fd in fds:
-        try:
-            os.close(fd)
-
-        except OSError:
-            pass
 
 
 class ExecutionStatus:
@@ -38,11 +29,30 @@ class ExecutionStatus:
 
         return self.time_finish - self.time_start
 
+    def to_dict(self) -> dict:
+        return {
+            'finished': self.finished,
+            'failed': self.failed,
+            'time_start': self.time_start,
+            'time_finish': self.time_finish,
+            'time_duration_sec': self.time_duration_sec(),
+        }
+
+    def __repr__(self) -> str:
+        return json_dumps(self.to_dict())
+
+
+def _write_secret_to_pipe(file: str, secret: str):
+    with open(file, 'w', encoding='utf-8') as f:
+        f.write(secret)
+
+    os.remove(file)
+
 
 class Execution:
     # pylint: disable=R0902
     def __init__(self, config: ExecutionConfig):
-        self.config = config
+        self.config = deepcopy(config)  # make sure the source-config is re-usable and not modified
 
         self.status = ExecutionStatus()
         self.__started = False
@@ -63,7 +73,7 @@ class Execution:
         self.__secret_pipe_connect_pass = self._path_run / f'.{get_random_str(20)}'
         self.__secret_pipe_become_pass = self._path_run / f'.{get_random_str(20)}'
         self.__secret_pipe_vault_pass = self._path_run / f'.{get_random_str(20)}'
-        self.__secret_pipe_fds = []
+        self._secret_pipe_threads = []
         self._ssh_known_hosts_file = self._path_run / f'.{get_random_str(20)}'
 
     def run(self) -> ExecutionStatus:
@@ -141,13 +151,6 @@ class Execution:
             file=self.__secret_pipe_vault_pass,
         )
 
-        if 'AR_TEST' not in os.environ:
-            t = Thread(
-                target=_close_secret_pipes_after_read,
-                kwargs={'fds': self.__secret_pipe_fds, 'wait_sec': self.config.start_pipe_block_sec},
-            )
-            t.start()
-
     def _create_secret_pipe(self, secret: (str, None), file: Path) -> None:
         if secret is None:
             return
@@ -156,10 +159,12 @@ class Execution:
             os.remove(file)
 
         os.mkfifo(file, mode=0o600)
-        fd_write = os.open(file, os.O_RDWR | os.O_NONBLOCK)
-        os.write(fd_write, secret.encode('utf-8'))
-        self.__secret_pipe_fds.append(fd_write)
-        return
+        t = Thread(
+            target=_write_secret_to_pipe,
+            kwargs={'file': file, 'secret': secret},
+        )
+        t.start()
+        self._secret_pipe_threads.append(t)
 
     def _create_log_files(self):
         log('Creating log-files')
@@ -206,19 +211,15 @@ class Execution:
         if self.__cleaned_up:
             return
 
-        for fd in self.__secret_pipe_fds:
-            try:
-                os.close(fd)
-
-            except OSError:
-                pass
-
         overwrite_and_delete_file(self.__secret_pipe_ssh_key)
         overwrite_and_delete_file(self.__secret_pipe_connect_pass)
         overwrite_and_delete_file(self.__secret_pipe_become_pass)
         overwrite_and_delete_file(self._ssh_known_hosts_file)
         if self.config.run_dir is None:
             rmtree(self._path_run)
+
+        for t in self._secret_pipe_threads:
+            t.join()
 
         self.__cleaned_up = True
 

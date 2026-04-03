@@ -33,12 +33,16 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
 ## Usage
 
 ```python3
-from oxl_ansible_runner_minimal import Config, Runner
+from oxl_ansible_runner_minimal import Execution, ExecutionConfig
 
-c = Config(playbook_file='test.yml', project_dir='/home/abc/ansible/', inventory_files='inv/env1/hosts.yml'
-r = Runner(c)
+c = ExecutionConfig(
+  playbook_dir='/home/abc/ansible/',
+  playbook_file='test.yml',
+  inventory_files='inv/env1/hosts.yml',
+)
+e = Execution(c)
 
-r.run()
+e.run()
 
 ```
 

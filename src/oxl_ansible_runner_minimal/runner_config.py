@@ -10,7 +10,7 @@ from config import CONTAINER_ENGINES, FALLBACK_CONTAINER_IMAGE
 
 
 class ExecutionConfig:
-    # pylint: disable=R0902,R0913,R0917,R0914
+    # pylint: disable=R0902,R0903,R0913,R0914,R0917
 
     """
     Arguments:
@@ -183,11 +183,6 @@ class ExecutionConfig:
         timeout_sec_start:
             Maximum time in seconds that the pre-start (before the ansible-playbook is started) is allowed to take.
 
-        start_pipe_block_sec:
-            Time the runner waits for ansible to read the passed secrets.
-            The secrets are passed via FIFO pipes and thus only readable once.
-            But it requires for us to block ansible for a short time to make it work.
-
         run_dir:
             Path to an existing runtime-directory that is used to store some temporary data in.
             By default, a temporary directory is created for each execution (via mkdtemp).
@@ -253,7 +248,6 @@ class ExecutionConfig:
             container_image: str = None,
             timeout_sec_run: int = 60 * 60,  # 1h
             timeout_sec_start: int = 300,  # 5m
-            start_pipe_block_sec: int = 10,
             run_dir: (str, Path) = None,
             log_stdout_file: (str, Path) = None,
             log_stderr_file: (str, Path) = None,
@@ -314,7 +308,6 @@ class ExecutionConfig:
         self.container_image = self._build_container_image(container_image)
         self.timeout_sec_run = timeout_sec_run
         self.timeout_sec_start = timeout_sec_start
-        self.start_pipe_block_sec = start_pipe_block_sec
 
         self.log_file_mode = log_file_mode
         self.log_file_owner_group = log_file_owner_group
@@ -574,7 +567,7 @@ class ExecutionConfig:
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be dict)")
 
     def _validate_times(self):
-        for attr in ['timeout_sec_run', 'timeout_sec_start', 'start_pipe_block_sec']:
+        for attr in ['timeout_sec_run', 'timeout_sec_start']:
             value = getattr(self, attr)
             if not isinstance(value, int):
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be int)")
@@ -583,11 +576,6 @@ class ExecutionConfig:
         if self.timeout_sec_start < 10:
             raise ConfigError(
                 f"Provided 'timeout_sec_start' is too low: '{self.timeout_sec_start}' (should be at least 10)",
-            )
-
-        if self.start_pipe_block_sec < 5:
-            raise ConfigError(
-                f"Provided 'start_pipe_block_sec' is too low: '{self.start_pipe_block_sec}' (should be at least 5)",
             )
 
     def _validate_log_file_settings(self):
