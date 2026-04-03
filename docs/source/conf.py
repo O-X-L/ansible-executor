@@ -1,7 +1,7 @@
 from datetime import datetime
 
 # pylint: disable=W0622
-project = 'Ansible Runner minimal'
+project = 'Ansible Runner'
 copyright = f'{datetime.now().year}, OXL'
 author = 'OXL'
 extensions = ['sphinx_immaterial']
@@ -21,7 +21,7 @@ source_suffix = {
     # '.md': 'markdown',
 }
 html_theme_options = {
-    "site_url": "https://ansible-runner-minimal.oxl.app",
+    "site_url": "https://ansible-runner.oxl.app",
     "repo_url": "https://github.com/O-X-L/ansible-runner-minimal",
     "repo_name": "Ansible Runner minimal",
     "globaltoc_collapse": True,
@@ -108,4 +108,4 @@ html_theme_options = {
     ],
 }
 html_title = 'Ansible Runner'
-html_short_title = 'Ansible Runner minimal'
+html_short_title = 'OXL Ansible Runner'
