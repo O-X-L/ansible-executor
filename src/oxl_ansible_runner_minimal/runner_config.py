@@ -1,20 +1,10 @@
 from os import environ
 from pathlib import Path
-from tempfile import mkdtemp
-from json import dumps as json_dumps
-from shutil import chown
 from shutil import which as find_executable
+from shlex import split as split_shell_args
 
 from config import CONTAINER_ENGINES
-from utils.filesystem import write_file_with_mode
-
-
-class ConfigError(ValueError):
-    pass
-
-
-class SetupError(ConfigError):
-    pass
+from exceptions import ConfigError, SetupError
 
 
 class Config:
@@ -25,6 +15,9 @@ class Config:
             inventory_files: (str, list[str]) = None,
             playbook_dir: str = None,
 
+            mode_check: bool = False,
+            mode_diff: bool = False,
+
             limit: (str, list[str]) = None,
             host_pattern: str = None,
 
@@ -33,6 +26,7 @@ class Config:
 
             extra_vars: dict = None,
             env_vars: dict = None,
+            cmd_args: (str, list[str]) = None,
 
             connect_user: str = None,
             connect_pass_file: (str, Path) = None,
@@ -42,14 +36,19 @@ class Config:
             become_pass_value: str = None,
             ssh_key_file: (str, Path) = None,
             ssh_key_value: str = None,
+            vault_pass_file: (str, Path) = None,
+            vault_pass_value: str = None,
 
-            verbosity: str = None,
+            verbosity: (str, int) = None,
+
+            ssh_known_hosts_file: (str, Path) = None,
 
             containerized: bool = True,
             container_engine: str = None,
             container_image: str = None,
             timeout_sec_run: int = 3600,
             timeout_sec_start: int = 300,
+            start_pipe_block_sec: int = 10,
             run_dir: (str, Path) = None,
             log_stdout_file: (str, Path) = None,
             log_stderr_file: (str, Path) = None,
@@ -59,6 +58,10 @@ class Config:
         self.playbook_file = playbook_file
         self.inventory_files = self._build_list(inventory_files)
         self.playbook_dir: Path = self._build_playbook_dir(playbook_dir)
+        self.run_dir = run_dir
+
+        self.mode_check = mode_check
+        self.mode_diff = mode_diff
 
         self.limit: str = self._build_csv(limit)
         self.host_pattern = host_pattern
@@ -68,6 +71,7 @@ class Config:
 
         self.extra_vars = extra_vars
         self.env_vars = env_vars
+        self.cmd_args = self._build_cmd_args(cmd_args)
 
         self.connect_user = connect_user
         self._connect_pass = self._build_pass(
@@ -86,8 +90,15 @@ class Config:
             pass_value=ssh_key_value,
             pass_file=ssh_key_file,
         )
+        self._vault_pass = self._build_pass(
+            which_pass='vault_pass',
+            pass_value=vault_pass_value,
+            pass_file=vault_pass_file,
+        )
 
         self.verbosity = verbosity
+
+        self.ssh_known_hosts_file = ssh_known_hosts_file
 
         self.containerized = containerized
         self.container_engine = self._build_container_engine(
@@ -97,23 +108,20 @@ class Config:
         self.container_image = container_image
         self.timeout_sec_run = timeout_sec_run
         self.timeout_sec_start = timeout_sec_start
-        self.run_dir = self._build_run_dir(run_dir)
+        self.start_pipe_block_sec = start_pipe_block_sec
+
+        self.log_file_mode = log_file_mode
+        self.log_file_owner_group = log_file_owner_group
         self.log_stdout_file = self._build_log_file(
             which_log='stdout',
-            run_dir=self.run_dir,
             file=log_stdout_file,
-            mode=log_file_mode,
-            group=log_file_owner_group,
         )
         self.log_stderr_file = self._build_log_file(
             which_log='stderr',
-            run_dir=self.run_dir,
             file=log_stderr_file,
-            mode=log_file_mode,
-            group=log_file_owner_group,
         )
 
-        self._validate()
+        self.validate()
 
     @staticmethod
     def _build_playbook_dir(playbook_dir: (str, None)) -> Path:
@@ -192,40 +200,45 @@ class Config:
         raise SetupError("No executable for the provided 'container_engine' could be found!")
 
     @staticmethod
-    def _build_run_dir(path: (str, Path, None)) -> Path:
-        if path is None:
-            return Path(mkdtemp(prefix='ar_'))
-
-        path = Path(path)
-        if not path.is_dir():
-            raise SetupError(f"Provided 'run_dir' should be an existing directory! ({path})")
-
-        return path
-
-    @staticmethod
-    def _build_log_file(
-            which_log: str, run_dir: Path, file: (str, Path, None),
-            mode: int, group: (str, int, None),
-    ) -> Path:
+    def _build_log_file(which_log: str, file: (str, Path, None)) -> (Path, None):
         if file is None:
-            file = run_dir / f'{which_log}.log'
+            return None
 
         file = Path(file)
         if file.exists():
             raise SetupError(f"Provided 'log_{which_log}_file' should not already exist! ({file})")
 
-        write_file_with_mode(file=file, content='', file_mode=mode)
-        if group is not None:
-            try:
-                chown(path=file, group=group)
-
-            except LookupError:
-                raise SetupError("Provided 'log_file_owner_group' does not exist!")
-
         return file
 
-    def _validate(self):
-        # pylint: disable=R0912
+    @staticmethod
+    def _build_cmd_args(cmd_args: (str, list[str], None)) -> (list[str], None):
+        if cmd_args is None:
+            return None
+
+        if isinstance(cmd_args, str):
+            cmd_args = split_shell_args(cmd_args)
+
+        if len(cmd_args) == 0:
+            return None
+
+        return cmd_args
+
+    def validate(self):
+        self._validate_playbook_dir()
+        self._validate_playbook_file()
+        self._validate_inventory_files()
+        self._validate_run_dir()
+        self._validate_ssh_known_hosts_file()
+        self._validate_verbosity()
+        self._validate_bools()
+        self._validate_dicts()
+        self._validate_times()
+        self._validate_log_file_settings()
+        self._validate_cmd_args()
+
+        # todo: schema-validation of string-values
+
+    def _validate_playbook_dir(self):
         if str(self.playbook_dir) == '':
             raise ConfigError(
                 "Unable to find 'playbook_dir'! "
@@ -235,6 +248,7 @@ class Config:
         if not self.playbook_dir.is_dir():
             raise SetupError(f"Provided 'playbook_dir' should be an existing directory! ({self.playbook_dir})")
 
+    def _validate_playbook_file(self):
         if self.playbook_file.startswith('/'):
             path_pb = Path(self.playbook_file)
 
@@ -247,74 +261,111 @@ class Config:
                 f"Maybe 'playbook_dir' needs be changed? ({path_pb})"
             )
 
-        if self.inventory_files is not None:
-            for iv in self.inventory_files:
-                if iv.startswith('/'):
-                    path_iv = Path(iv)
+    def _validate_inventory_files(self):
+        if self.inventory_files is None:
+            return
 
-                else:
-                    path_iv = self.playbook_dir / iv
+        for iv in self.inventory_files:
+            if iv.startswith('/'):
+                path_iv = Path(iv)
 
-                if not path_iv.is_file() and not path_iv.is_dir():
-                    raise SetupError(f"Provided 'inventory_files' do not exist! ({path_iv})")
+            else:
+                path_iv = self.playbook_dir / iv
 
-        if self.verbosity not in [None, 'v', 'vv', 'vvv', 'vvvv', 'vvvvv', 'vvvvvv']:
-            raise ConfigError(f"Got bad value for 'verbosity': '{self.verbosity}'")
+            if not path_iv.is_file() and not path_iv.is_dir():
+                raise SetupError(f"Provided 'inventory_files' do not exist! ({path_iv})")
 
-        if self.extra_vars is not None and not isinstance(self.extra_vars, dict):
-            raise ConfigError(f"Got bad type for 'extra_vars': '{type(self.extra_vars)}' (should be dict)")
+    def _validate_run_dir(self):
+        if self.run_dir is None:
+            return
 
-        if self.env_vars is not None and not isinstance(self.env_vars, dict):
-            raise ConfigError(f"Got bad type for 'env_vars': '{type(self.env_vars)}' (should be dict)")
+        self.run_dir = Path(self.run_dir)
 
-        if not isinstance(self.timeout_sec_run, int):
-            raise ConfigError(f"Got bad type for 'timeout_sec_run': '{type(self.timeout_sec_run)}' (should be int)")
+        if not self.run_dir.is_dir():
+            raise SetupError(f"Provided 'run_dir' should be an existing directory! ({self.run_dir})")
 
-        if not isinstance(self.timeout_sec_start, int):
-            raise ConfigError(f"Got bad type for 'timeout_sec_start': '{type(self.timeout_sec_start)}' (should be int)")
+    def _validate_ssh_known_hosts_file(self):
+        if self.ssh_known_hosts_file is None:
+            return
 
-        # todo: schema-validation of string-values
+        if str(self.ssh_known_hosts_file).startswith('/'):
+            self.ssh_known_hosts_file = Path(self.ssh_known_hosts_file)
 
-    def generate_ansible_command(self) -> list[str]:
-        # cleaned-up & simplified version of the official "ansible_runner.RunnerConfig.generate_ansible_command"
-        cmd = ['ansible-playbook']
+        else:
+            self.ssh_known_hosts_file = self.playbook_dir / self.ssh_known_hosts_file
 
-        if self.inventory_files is not None:
-            for i in self.inventory_files:
-                cmd.extend(['-i', str(i)])
-
-        if self.limit is not None:
-            cmd.extend(['--limit', self.limit])
-
-        if self.extra_vars is not None and len(self.extra_vars) > 0:
-            extra_vars_list = []
-            for k in self.extra_vars:
-                extra_vars_list.append(f"\"{k}\":{json_dumps(self.extra_vars[k])}")
-
-            cmd.extend(
-                [
-                    '-e',
-                    f'{{{",".join(extra_vars_list)}}}'
-                ]
+        if not self.ssh_known_hosts_file.is_file():
+            raise SetupError(
+                f"Provided 'ssh_known_hosts_file' should be an existing file! "
+                f"Maybe 'playbook_dir' needs be changed? ({self.ssh_known_hosts_file})"
             )
 
-        if self.verbosity is not None:
-            cmd.append(f'-{self.verbosity}')
+    def _validate_verbosity(self):
+        if self.verbosity is None:
+            return
 
-        if self.tags is not None:
-            cmd.extend(['--tags', self.tags])
+        if isinstance(self.verbosity, int):
+            if self.verbosity < 0 or self.verbosity > 6:
+                raise ConfigError(f"Got bad value for 'verbosity': '{self.verbosity}' (0-6 or v-vvvvvv)")
 
-        if self.skip_tags is not None:
-            cmd.extend(['--skip-tags', self.skip_tags])
+            if self.verbosity == 0:
+                self.verbosity = None
 
-        cmd.append(str(self.playbook_file))
-        return cmd
+            else:
+                self.verbosity = 'v' * self.verbosity
 
+            return
 
-class Runner:
-    def __init__(self, config: Config):
-        self.config = config
-        self.path_run = mkdtemp(prefix='ar_')
+        if self.verbosity not in ['v', 'vv', 'vvv', 'vvvv', 'vvvvv', 'vvvvvv']:
+            raise ConfigError(f"Got bad value for 'verbosity': '{self.verbosity}' (0-6 or v-vvvvvv)")
 
-    def run(self):
-        print(self.config.generate_ansible_command())
+    def _validate_bools(self):
+        for attr in ['mode_check', 'mode_diff', 'containerized']:
+            value = getattr(self, attr)
+            if not isinstance(value, bool):
+                raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be bool)")
+
+    def _validate_dicts(self):
+        for attr in ['extra_vars', 'env_vars']:
+            value = getattr(self, attr)
+            if value is not None and not isinstance(value, dict):
+                raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be dict)")
+
+    def _validate_times(self):
+        for attr in ['timeout_sec_run', 'timeout_sec_start', 'start_pipe_block_sec']:
+            value = getattr(self, attr)
+            if not isinstance(value, int):
+                raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be int)")
+
+        if self.start_pipe_block_sec < 5:
+            raise ConfigError(
+                f"Provided 'start_pipe_block_sec' is too low: '{self.start_pipe_block_sec}' (should be at least 5)",
+            )
+
+    def _validate_log_file_settings(self):
+        if self.log_file_mode not in [0o600, 0o640, 0o644]:
+            raise ConfigError(f"Got bad value for 'log_file_mode': '{self.log_file_mode}'")
+
+        if self.log_file_owner_group is not None and not isinstance(self.log_file_owner_group, (int, str)):
+            raise ConfigError(
+                f"Got bad type for 'log_file_owner_group': '{type(self.log_file_owner_group)}' (should be int or str)",
+            )
+
+    def _validate_cmd_args(self):
+        if self.cmd_args is None:
+            return
+
+        if not isinstance(self.cmd_args, list):
+            raise ConfigError(
+                f"Got bad type for 'cmd_args': '{type(self.cmd_args)}' (should be list[str])",
+            )
+
+        if len(self.cmd_args) == 0:
+            self.cmd_args = None
+            return
+
+        if not isinstance(self.cmd_args[0], str):
+            raise ConfigError(
+                f"Got bad type for 'cmd_args' values: '{type(self.cmd_args)} => {type(self.cmd_args[0])}' "
+                f"(should be list[str])",
+            )

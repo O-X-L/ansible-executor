@@ -50,3 +50,4 @@ jobs:
           python3 -m pytest
         env:
           PYTHONUNBUFFERED: 1
+          AR_TEST: 1

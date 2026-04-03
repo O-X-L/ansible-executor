@@ -10,3 +10,4 @@ rules:
 
 ignore: |
   venv/*
+  .venv/*

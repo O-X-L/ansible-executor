@@ -9,3 +9,9 @@ echo 'LINTING Python'
 echo ''
 
 python3 -m pylint --rcfile .pylintrc --recursive=y .
+
+echo ''
+echo 'LINTING YAML'
+echo ''
+
+yamllint .
