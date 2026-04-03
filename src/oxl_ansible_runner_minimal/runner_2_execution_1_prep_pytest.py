@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
@@ -39,12 +41,12 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
         ),
     ]
 )
-def test_runner_execution_generate_command(kwargs: dict, args: str):
-    from runner_exec import Config, Execution
+def test_runner_execution_before(kwargs: dict, args: str):
+    from runner_execution import ExecutionConfig, Execution
 
-    c = Config(**kwargs)
+    c = ExecutionConfig(**kwargs)
     e = Execution(c)
+    e._before()
 
-    cmd = ['ansible-playbook']
-    cmd.extend(args)
-    assert e.generate_ansible_command() == cmd
+    assert isinstance(c.log_stdout_file, Path)
+    assert isinstance(c.log_stderr_file, Path)

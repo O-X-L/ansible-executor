@@ -26,10 +26,10 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
     ]
 )
 def test_runner_config_validation_failures(kwargs: dict):
-    from runner_config import Config, ConfigError
+    from runner_config import ExecutionConfig, ConfigError
 
     with pytest.raises(ConfigError):
-        Config(**kwargs)
+        ExecutionConfig(**kwargs)
 
 
 @pytest.mark.parametrize(
@@ -45,9 +45,9 @@ def test_runner_config_validation_failures(kwargs: dict):
     ]
 )
 def test_runner_config_validation_success(kwargs: dict):
-    from runner_config import Config
+    from runner_config import ExecutionConfig
 
-    Config(**kwargs)
+    ExecutionConfig(**kwargs)
 
 
 @pytest.mark.parametrize(
@@ -59,9 +59,9 @@ def test_runner_config_validation_success(kwargs: dict):
     ]
 )
 def test_runner_config_ensure_log_files(kwargs: dict):
-    from runner_config import Config
+    from runner_config import ExecutionConfig
 
-    c = Config(**kwargs)
+    c = ExecutionConfig(**kwargs)
 
     if c.log_stdout_file is not None:
         assert isinstance(c.log_stdout_file, Path)

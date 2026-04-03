@@ -3,11 +3,11 @@ from pathlib import Path
 from shutil import which as find_executable
 from shlex import split as split_shell_args
 
-from config import CONTAINER_ENGINES
 from exceptions import ConfigError, SetupError
+from config import CONTAINER_ENGINES, FALLBACK_CONTAINER_IMAGE
 
 
-class Config:
+class ExecutionConfig:
     # pylint: disable=R0902,R0913,R0917,R0914
     def __init__(
             self,
@@ -43,7 +43,7 @@ class Config:
 
             ssh_known_hosts_file: (str, Path) = None,
 
-            containerized: bool = True,
+            containerized: bool = False,
             container_engine: str = None,
             container_image: str = None,
             timeout_sec_run: int = 3600,
@@ -105,7 +105,7 @@ class Config:
             containerized=containerized,
             engine=container_engine,
         )
-        self.container_image = container_image
+        self.container_image = self._build_container_image(container_image)
         self.timeout_sec_run = timeout_sec_run
         self.timeout_sec_start = timeout_sec_start
         self.start_pipe_block_sec = start_pipe_block_sec
@@ -198,6 +198,16 @@ class Config:
                     return possible_engine
 
         raise SetupError("No executable for the provided 'container_engine' could be found!")
+
+    @staticmethod
+    def _build_container_image(image: (str, None)) -> str:
+        if image is None:
+            return FALLBACK_CONTAINER_IMAGE
+
+        if image.find(':') == -1:
+            return f'{image}:latest'
+
+        return image
 
     @staticmethod
     def _build_log_file(which_log: str, file: (str, Path, None)) -> (Path, None):

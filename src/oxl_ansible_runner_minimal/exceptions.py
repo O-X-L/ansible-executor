@@ -8,3 +8,7 @@ class SetupError(ConfigError):
 
 class PreparationError(ConfigError):
     pass
+
+
+class ExecutionError(EnvironmentError):
+    pass

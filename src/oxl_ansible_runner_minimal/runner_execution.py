@@ -3,11 +3,12 @@ from pathlib import Path
 from threading import Thread
 from tempfile import mkdtemp
 from time import sleep, time
-from json import dumps as json_dumps
 from shutil import chown, rmtree
 
-from runner_config import Config
+from runner_config import ExecutionConfig
 from exceptions import PreparationError
+from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN
+from runner_executor import ExecutorLocal, ExecutorContainerDocker, ExecutorContainerPodman
 from utils.debug import log
 from utils.util import get_random_str
 from utils.filesystem import write_file_with_mode, overwrite_and_delete_file
@@ -39,7 +40,7 @@ class ExecutionStatus:
 
 
 class Execution:
-    def __init__(self, config: Config):
+    def __init__(self, config: ExecutionConfig):
         self.config = config
 
         self.status = ExecutionStatus()
@@ -83,12 +84,24 @@ class Execution:
         self._create_secret_pipes()
 
     def _execute(self):
-        log('Executing ansible-playbook')
-        cmd_ansible = self.generate_ansible_command()
-        print(cmd_ansible)
+        executor = ExecutorLocal
+        if self.config.containerized:
+            if self.config.container_engine == CONTAINER_ENGINE_DOCKER:
+                executor = ExecutorContainerDocker
 
-        # execute playbook
-        sleep(30)  # process-monitor loop - act on signals
+            elif self.config.container_engine == CONTAINER_ENGINE_PODMAN:
+                executor = ExecutorContainerPodman
+
+        e = executor(
+            config=self.config,
+            pipe_ssh_key=self.__secret_pipe_ssh_key,
+            pipe_connect_pass=self.__secret_pipe_connect_pass,
+            pipe_become_pass=self.__secret_pipe_become_pass,
+            pipe_vault_pass=self.__secret_pipe_vault_pass,
+        )
+        e.execute()
+
+        # todo: update execution-status
 
     def _after(self):
         self.status.time_finish = int(time())
@@ -172,76 +185,6 @@ class Execution:
             os.remove(self._ssh_known_hosts_file)
 
         write_file_with_mode(file=self._ssh_known_hosts_file, content=ssh_known_hosts, file_mode=0o600)
-
-    def generate_ansible_command(self) -> list[str]:
-        # cleaned-up & simplified version of the official "ansible_runner.RunnerConfig.generate_ansible_command"
-        # pylint: disable=R0912
-        cmd = ['ansible-playbook']
-
-        if self.config.inventory_files is not None:
-            for i in self.config.inventory_files:
-                cmd.extend(['-i', str(i)])
-
-        if self.config.mode_check:
-            cmd.append('--check')
-
-        if self.config.mode_diff:
-            cmd.append('--diff')
-
-        if self.config.limit is not None:
-            cmd.extend(['--limit', self.config.limit])
-
-        if self.config.extra_vars is not None and len(self.config.extra_vars) > 0:
-            extra_vars_list = []
-            for k in self.config.extra_vars:
-                extra_vars_list.append(f"\"{k}\":{json_dumps(self.config.extra_vars[k])}")
-
-            cmd.extend(
-                [
-                    '-e',
-                    f'{{{",".join(extra_vars_list)}}}'
-                ]
-            )
-
-        if self.config.verbosity is not None:
-            cmd.append(f'-{self.config.verbosity}')
-
-        if self.config.tags is not None:
-            cmd.extend(['--tags', self.config.tags])
-
-        if self.config.skip_tags is not None:
-            cmd.extend(['--skip-tags', self.config.skip_tags])
-
-        if self.config.ssh_known_hosts_file is not None:
-            cmd.extend([
-                '-e',
-                f"ansible_ssh_extra_args='-o UserKnownHostsFile={self.config.ssh_known_hosts_file}'",
-            ])
-
-        # pylint: disable=W0212
-        if self.config._ssh_key is not None:
-            cmd.extend(['--private-key', str(self.__secret_pipe_connect_pass)])
-
-        if self.config.connect_user is not None:
-            cmd.extend(['--user', self.config.connect_user])
-
-        if self.config._connect_pass is not None:
-            cmd.extend(['--connection-password-file', str(self.__secret_pipe_connect_pass)])
-
-        if self.config.become_user is not None:
-            cmd.extend(['--become-user', self.config.become_user])
-
-        if self.config._become_pass is not None:
-            cmd.extend(['--become-password-file', str(self.__secret_pipe_become_pass)])
-
-        if self.config._vault_pass is not None:
-            cmd.extend(['--vault-password-file', str(self.__secret_pipe_vault_pass)])
-
-        if self.config.cmd_args is not None:
-            cmd.extend(self.config.cmd_args)
-
-        cmd.append(str(self.config.playbook_file))
-        return cmd
 
     def cleanup(self):
         # is done automatically after:

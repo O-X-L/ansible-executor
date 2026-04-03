@@ -10,17 +10,17 @@ from utils.debug import log
 
 # pylint: disable=R0914
 def process(
-        cmd: (str, list), cwd: Path = None, timeout_sec: int = None, shell: bool = False,
+        cmd: list[str], cwd: Path = None, timeout_sec: int = None, shell: bool = False,
         env: dict = None, env_remove: list = None, stdin: str = None,
 ) -> dict:
+    # returns: dict containing rc[int],stdout[str],stderr[str]
+    if not isinstance(cmd, list):
+        raise TypeError('Command has to be of type list[str] !')
+
     if cwd is None:
         cwd = Path(mkdtemp(prefix='ar_'))
 
-    cmd_str = cmd
-    if isinstance(cmd, list):
-        cmd_str = ' '.join(cmd)
-
-    log(msg=f"Executing command: '{cmd_str}'")
+    log(msg=f"Executing command: '{' '.join(cmd)}'")
 
     # merge provided env with current env and hide secrets
     env_full = environ.copy()
@@ -40,8 +40,8 @@ def process(
 
 @cache
 def process_cache(
-        cmd: str, cwd: Path = None, timeout_sec: int = None, shell: bool = False,
+        cmd: list[str], cwd: Path = None, timeout_sec: int = None, shell: bool = False,
         env: dict = None, env_remove: list = None,
 ) -> dict:
     # read-only commands which results can be cached
-    return process(cmd=cmd.split(' '), timeout_sec=timeout_sec, shell=shell, cwd=cwd, env=env, env_remove=env_remove)
+    return process(cmd=cmd, timeout_sec=timeout_sec, shell=shell, cwd=cwd, env=env, env_remove=env_remove)
