@@ -16,7 +16,11 @@ class ExecutorBase(ABC):
     ):
         self.config = config
 
+        self.process_thread = []
+        self.process = None
+        self.result = None
         self.signal_stop = False
+
         self._engine_init(
             pipe_ssh_key=pipe_ssh_key,
             pipe_connect_pass=pipe_connect_pass,
@@ -37,6 +41,7 @@ class ExecutorBase(ABC):
         log('Executing ansible-playbook')
         cmd = self.generate_engine_command()
         log(f'Command: {cmd}')
+        log(f'Log files: {self.config.log_stdout_file} | {self.config.log_stderr_file}')
 
         # result = self._execute_command(cmd)
         self._execute_command(cmd)

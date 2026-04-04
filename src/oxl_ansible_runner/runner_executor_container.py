@@ -88,7 +88,7 @@ class ExecutorContainer(ExecutorBase):
             cmd=[self.engine_executable, 'image', 'pull', self.config.container_image],
             timeout_sec=3 * 60,
         )
-        if image_pull['rc'] == 0:
+        if not image_pull.failed:
             return
 
         image_query = process(
@@ -98,7 +98,7 @@ class ExecutorContainer(ExecutorBase):
         msg = f"Failed to pull container image: '{self.config.container_image}'"
 
         # only fail if the image does not exist and could not be pulled
-        if image_query['stdout'] is None:
+        if image_query.stdout is None:
             raise ExecutionError(msg)
 
         log(msg)

@@ -67,4 +67,4 @@ def overwrite_and_delete_file(file: (str, Path)):
 
 
 def rm_dir(path: (str, Path)) -> int:
-    return process(f'rm -rf {path}')['rc']
+    return process(f'rm -rf {path}').rc

@@ -30,7 +30,9 @@ class ExecutionConfig:
 
         playbook_dir:
             Path to the directory containing your ansible-playbooks.
-            By default, the current-working-directory is used.
+            Defaults:
+                If the playbook_file is an absolute path - its parent-directory is used.
+                As fallback the current-working-directory is used.
             It is recommended to pass an absolute path.
 
         mode_check:

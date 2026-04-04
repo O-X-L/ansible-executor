@@ -28,6 +28,20 @@ The implementation will be opinionated and will have a 'narrow' interface.
 
 See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
 
+## Roadmap
+
+- [ ] Ansible Execution
+  - [ ] Engines
+    - [x] Local Executor
+    - [ ] Container Executor
+      - [ ] Docker
+      - [ ] Podman
+  - [ ] Functionality
+    - [x] Playbook targeting local machine
+    - [ ] Playbook targeting remote Linux server (SSH-Key, Connect-Pass, Become-Pass, Vault-Pass)
+    - [ ] Stopping job
+    - [x] Redirect output (stdout/stderr) to log-files
+
 ----
 
 ## Usage
@@ -43,7 +57,6 @@ c = ExecutionConfig(
 e = Execution(c)
 
 e.run()
-
 ```
 
 ----

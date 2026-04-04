@@ -9,7 +9,7 @@ from json import dumps as json_dumps
 
 from runner_config import ExecutionConfig
 from exceptions import PreparationError
-from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN
+from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, DEFAULT_LOG_DIR
 from runner_executor_local import ExecutorBase, ExecutorLocal
 from runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman
 from utils.debug import log
@@ -57,11 +57,13 @@ class Execution:
 
         self.status = ExecutionStatus()
         self.__started = False
-        self.signal_stop = False
         self._executor: ExecutorBase = None
 
         self.__cleaned_up = False
         self._prepare()
+
+    def stop_execution(self):
+        self._executor.signal_stop = True
 
     def _prepare(self):
         if self.config.run_dir is None:
@@ -169,18 +171,22 @@ class Execution:
 
     def _create_log_files(self):
         log('Creating log-files')
+        if not DEFAULT_LOG_DIR.is_dir():
+            DEFAULT_LOG_DIR.mkdir(parents=True)
+
+        log_file_id = f'{int(time())}_{get_random_str(5)}'
         if self.config.log_stdout_file is None:
-            self.config.log_stdout_file = self._path_run / f'ansible_stdout_{int(time())}.log'
+            self.config.log_stdout_file = DEFAULT_LOG_DIR / f'ansible_stdout_{log_file_id}.log'
 
         if self.config.log_stderr_file is None:
-            self.config.log_stderr_file = self._path_run / f'ansible_stderr_{int(time())}.log'
+            self.config.log_stderr_file = DEFAULT_LOG_DIR / f'ansible_stderr_{log_file_id}.log'
 
         self._create_log_file(which_file='stdout', file=self.config.log_stdout_file)
         self._create_log_file(which_file='stderr', file=self.config.log_stderr_file)
 
     def _create_log_file(self, which_file: str, file: Path) -> None:
         if file.is_file():
-            raise PreparationError(f"Provided 'log_{which_file}_file' should not be an existing file!")
+            raise PreparationError(f"Provided 'log_{which_file}_file' should not be an existing file! ({file})")
 
         write_file_with_mode(file=file, content='', file_mode=self.config.log_file_mode)
 
