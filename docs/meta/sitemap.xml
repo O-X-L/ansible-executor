@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-   <url><loc>https://ansible-runner-minimal.oxl.app/</loc></url>
+   <url><loc>https://ansible-runner.oxl.app/</loc></url>
 
-   <url><loc>https://ansible-runner-minimal.oxl.app/getting_started/1_intro.html</loc></url>
-   <url><loc>https://ansible-runner-minimal.oxl.app/getting_started/2_install.html</loc></url>
-   <url><loc>https://ansible-runner-minimal.oxl.app/getting_started/3_run.html</loc></url>
-   <url><loc>https://ansible-runner-minimal.oxl.app/getting_started/4_config.html</loc></url>
+   <url><loc>https://ansible-runner.oxl.app/getting_started/1_intro.html</loc></url>
+   <url><loc>https://ansible-runner.oxl.app/getting_started/2_install.html</loc></url>
+   <url><loc>https://ansible-runner.oxl.app/getting_started/3_run.html</loc></url>
+   <url><loc>https://ansible-runner.oxl.app/getting_started/4_config.html</loc></url>
 
-   <url><loc>https://ansible-runner-minimal.oxl.app/development/1_intro.html</loc></url>
+   <url><loc>https://ansible-runner.oxl.app/development/1_intro.html</loc></url>
 </urlset>

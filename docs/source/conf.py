@@ -22,7 +22,7 @@ source_suffix = {
 }
 html_theme_options = {
     "site_url": "https://ansible-runner.oxl.app",
-    "repo_url": "https://github.com/O-X-L/ansible-runner-minimal",
+    "repo_url": "https://github.com/O-X-L/ansible-runner",
     "repo_name": "Ansible Runner minimal",
     "globaltoc_collapse": True,
     "features": [

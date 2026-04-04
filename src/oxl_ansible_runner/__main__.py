@@ -6,4 +6,4 @@ sys_path.append(os_path.dirname(os_path.abspath(__file__)))
 
 
 if __name__ == '__main__':
-    print("DOCS: https://ansible-runner-minimal.oxl.app")
+    print("DOCS: https://ansible-runner.oxl.app")
