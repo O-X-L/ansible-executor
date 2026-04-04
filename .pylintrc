@@ -430,6 +430,7 @@ disable=C0114, C0115, C0116,  # no inline docs
         C0103,  # var-naming..
         W0511,  # todo comments
         W0707,  # has reasons
+        R0903,  # some classes might only have one..
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 
 from utils.debug import log
 from runner_config import ExecutionConfig
-from runner_executor_command import generate_secret_cmd_args, generate_ansible_command
 
 
 class ExecutorBase(ABC):
@@ -16,18 +15,22 @@ class ExecutorBase(ABC):
             pipe_vault_pass: Path = None,
     ):
         self.config = config
-        self.__secret_args = generate_secret_cmd_args(
-            config=config,
+
+        self.signal_stop = False
+        self._engine_init(
             pipe_ssh_key=pipe_ssh_key,
             pipe_connect_pass=pipe_connect_pass,
             pipe_become_pass=pipe_become_pass,
             pipe_vault_pass=pipe_vault_pass,
         )
 
-        self.signal_stop = False
-        self._engine_init()
-
-    def _engine_init(self):
+    def _engine_init(
+            self,
+            pipe_ssh_key: Path = None,
+            pipe_connect_pass: Path = None,
+            pipe_become_pass: Path = None,
+            pipe_vault_pass: Path = None,
+    ):
         pass
 
     def execute(self):
@@ -46,8 +49,9 @@ class ExecutorBase(ABC):
     def _execute_command(self, cmd: list[str]) -> dict:
         raise NotImplementedError('Command-execution has to be implemented!')
 
+    @abstractmethod
     def generate_ansible_command(self) -> list[str]:
-        return generate_ansible_command(config=self.config, secret_args=self.__secret_args)
+        raise NotImplementedError('Command-generation has to be implemented!')
 
     @abstractmethod
     def generate_engine_command(self) -> list[str]:

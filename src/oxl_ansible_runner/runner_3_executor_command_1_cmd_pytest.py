@@ -25,7 +25,7 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
         (
             {'playbook_file': f'{PATH_TEST}/test.yml',
              'inventory_files': [f'{PATH_TEST}/inv1/', f'{PATH_TEST}/inv2/hosts']},
-            ['-i', f'{PATH_TEST}/inv1/', '-i', f'{PATH_TEST}/inv2/hosts', f'{PATH_TEST}/test.yml'],
+            ['-i', 'inv1', '-i', 'inv2/hosts', 'test.yml'],
         ),
         (
             {'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'inventory_files': 'inv1/',
@@ -39,13 +39,19 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
         ),
     ]
 )
-def test_runner_executor_generate_command(kwargs: dict, args: str):
+def test_runner_executor_generate_command_wo_secrets(kwargs: dict, args: str):
     from runner_config import ExecutionConfig
-    from runner_executor_local import ExecutorLocal
+    from runner_executor_command import AnsibleCommand
 
     c = ExecutionConfig(**kwargs)
-    e = ExecutorLocal(c)
+    a = AnsibleCommand(
+        config=c,
+        pipe_ssh_key=None,
+        pipe_connect_pass=None,
+        pipe_become_pass=None,
+        pipe_vault_pass=None,
+        inventory_files=c.inventory_files,
+        ssh_known_hosts_file=c.ssh_known_hosts_file,
+    )
 
-    cmd = ['ansible-playbook']
-    cmd.extend(args)
-    assert e.generate_ansible_command() == cmd
+    assert a.generate()[1:] == args

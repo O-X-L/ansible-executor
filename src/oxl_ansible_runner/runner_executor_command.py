@@ -4,89 +4,116 @@ from json import dumps as json_dumps
 from runner_config import ExecutionConfig
 
 
-def generate_ansible_command(config: ExecutionConfig, secret_args: list[str]) -> list[str]:
-    # cleaned-up & simplified version of the official "ansible_runner.RunnerConfig.generate_ansible_command"
-    # pylint: disable=R0912
-    cmd = ['ansible-playbook']
+class AnsibleCommand:
+    # pylint: disable=R0913,R0917
+    def __init__(
+            self,
+            config: ExecutionConfig,
 
-    if config.inventory_files is not None:
-        for i in config.inventory_files:
-            cmd.extend(['-i', str(i)])
+            pipe_ssh_key: (Path, None),
+            pipe_connect_pass: (Path, None),
+            pipe_become_pass: (Path, None),
+            pipe_vault_pass: (Path, None),
 
-    if config.mode_check:
-        cmd.append('--check')
+            inventory_files: list[Path|None],
+            ssh_known_hosts_file: (Path, None),
+    ):
+        self.config = config
 
-    if config.mode_diff:
-        cmd.append('--diff')
+        # separate from ExecutionConfig because paths differ inside container
+        self.inventory_files = inventory_files
+        self.ssh_known_hosts_file = ssh_known_hosts_file
 
-    if config.limit is not None:
-        cmd.extend(['--limit', config.limit])
+        self.__secret_pipe_ssh_key = pipe_ssh_key
+        self.__secret_pipe_connect_pass = pipe_connect_pass
+        self.__secret_pipe_become_pass = pipe_become_pass
+        self.__secret_pipe_vault_pass = pipe_vault_pass
 
-    if config.extra_vars is not None and len(config.extra_vars) > 0:
-        extra_vars_list = []
-        for k in config.extra_vars:
-            extra_vars_list.append(f"\"{k}\":{json_dumps(config.extra_vars[k])}")
+    def _generate_args_auth(self) -> list[str]:
+        # pylint: disable=W0212
+        args = []
+        if self.config.connect_user is not None:
+            args.extend(['--user', self.config.connect_user])
 
-        cmd.extend(
-            [
+        if self.config._ssh_key is not None and self.__secret_pipe_ssh_key is not None:
+            args.extend(['--private-key', str(self.__secret_pipe_ssh_key)])
+
+        if self.config._connect_pass is not None and self.__secret_pipe_connect_pass is not None:
+            args.extend(['--connection-password-file', str(self.__secret_pipe_connect_pass)])
+
+        if self.ssh_known_hosts_file is not None:
+            args.extend([
                 '-e',
-                f'{{{",".join(extra_vars_list)}}}'
-            ]
-        )
+                f"ansible_ssh_extra_args='-o UserKnownHostsFile={self.ssh_known_hosts_file}'",
+            ])
 
-    if config.verbosity is not None:
-        cmd.append(f'-{config.verbosity}')
+        if self.config.become_user is not None:
+            args.extend(['--become-user', self.config.become_user])
 
-    if config.tags is not None:
-        cmd.extend(['--tags', config.tags])
+        if self.config._become_pass is not None and self.__secret_pipe_become_pass is not None:
+            args.extend(['--become-password-file', str(self.__secret_pipe_become_pass)])
 
-    if config.skip_tags is not None:
-        cmd.extend(['--skip-tags', config.skip_tags])
+        if self.config._vault_pass is not None and self.__secret_pipe_vault_pass is not None:
+            args.extend(['--vault-password-file', str(self.__secret_pipe_vault_pass)])
 
-    if config.ssh_known_hosts_file is not None:
-        cmd.extend([
-            '-e',
-            f"ansible_ssh_extra_args='-o UserKnownHostsFile={config.ssh_known_hosts_file}'",
-        ])
+        if self.config.vault_id is not None:
+            for vault_id in self.config.vault_id:
+                args.extend(['--vault-id', vault_id])
 
-    if config.connect_user is not None:
-        cmd.extend(['--user', config.connect_user])
+        return args
 
-    if config.become_user is not None:
-        cmd.extend(['--become-user', config.become_user])
+    def _generate_args_basic(self) -> list[str]:
+        args = []
+        if self.inventory_files is not None:
+            for i in self.inventory_files:
+                args.extend(['-i', str(i)])
 
-    if config.vault_id is not None:
-        for vault_id in config.vault_id:
-            cmd.extend(['--vault-id', vault_id])
+        if self.config.mode_check:
+            args.append('--check')
 
-    cmd.extend(secret_args)
+        if self.config.mode_diff:
+            args.append('--diff')
 
-    if config.cmd_args is not None:
-        cmd.extend(config.cmd_args)
+        if self.config.limit is not None:
+            args.extend(['--limit', self.config.limit])
 
-    cmd.append(str(config.playbook_file))
-    return cmd
+        if self.config.verbosity is not None:
+            args.append(f'-{self.config.verbosity}')
 
+        if self.config.tags is not None:
+            args.extend(['--tags', self.config.tags])
 
-def generate_secret_cmd_args(
-        config: ExecutionConfig,
-        pipe_ssh_key: (Path, None),
-        pipe_connect_pass: (Path, None),
-        pipe_become_pass: (Path, None),
-        pipe_vault_pass: (Path, None),
-) -> list[str]:
-    # pylint: disable=W0212
-    args = []
-    if config._ssh_key is not None and pipe_ssh_key is not None:
-        args.extend(['--private-key', str(pipe_ssh_key)])
+        if self.config.skip_tags is not None:
+            args.extend(['--skip-tags', self.config.skip_tags])
 
-    if config._connect_pass is not None and pipe_connect_pass is not None:
-        args.extend(['--connection-password-file', str(pipe_connect_pass)])
+        return args
 
-    if config._become_pass is not None and pipe_become_pass is not None:
-        args.extend(['--become-password-file', str(pipe_become_pass)])
+    def _generate_args_extra_vars(self) -> list[str]:
+        args = []
+        if self.config.extra_vars is not None and len(self.config.extra_vars) > 0:
+            extra_vars_list = []
+            for k in self.config.extra_vars:
+                extra_vars_list.append(f"\"{k}\":{json_dumps(self.config.extra_vars[k])}")
 
-    if config._vault_pass is not None and pipe_vault_pass is not None:
-        args.extend(['--vault-password-file', str(pipe_vault_pass)])
+            args.extend(
+                [
+                    '-e',
+                    f'{{{",".join(extra_vars_list)}}}'
+                ]
+            )
 
-    return args
+        return args
+
+    def generate(self) -> list[str]:
+        # see also: official ansible-runner "ansible_runner.RunnerConfig.generate_ansible_command"
+        cmd = ['ansible-playbook']
+
+        cmd.extend(self._generate_args_basic())
+        cmd.extend(self._generate_args_extra_vars())
+        cmd.extend(self._generate_args_auth())
+
+        if self.config.cmd_args is not None:
+            cmd.extend(self.config.cmd_args)
+
+        cmd.append(str(self.config.playbook_file))
+        return cmd

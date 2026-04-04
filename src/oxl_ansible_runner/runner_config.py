@@ -10,14 +10,14 @@ from config import CONTAINER_ENGINES, FALLBACK_CONTAINER_IMAGE
 
 
 class ExecutionConfig:
-    # pylint: disable=R0902,R0903,R0913,R0914,R0917
+    # pylint: disable=R0902,R0913,R0914,R0917
 
     """
     Arguments:
         ### ANSIBLE-PLAYBOOK EXECUTION
 
         playbook_file
-            The path to the ansible-playbook to execute - absolute or relative from 'playbook_dir'
+            The path to the ansible-playbook to execute - absolute or relative pointing to inside 'playbook_dir'
 
             Ansible docs: https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_intro.html
 
@@ -261,81 +261,123 @@ class ExecutionConfig:
             log_file_mode: int = 0o640,
             log_file_owner_group: (str, int) = None,
     ):
-        self.playbook_file = playbook_file
-        self.inventory_files = self._build_list(inventory_files)
-        self.playbook_dir: Path = self._build_playbook_dir(playbook_dir)
-        self.run_dir = run_dir
+        self.playbook_dir: Path = self._build_playbook_dir(playbook_dir=playbook_dir, playbook_file=playbook_file)
+        self.playbook_file: (str, Path) = self._build_playbook_file(playbook_file)
+        self.inventory_files: list[str|Path] = self._build_inventory_files(inventory_files)
+        self.run_dir: (Path, None) = run_dir
 
-        self.mode_check = mode_check
-        self.mode_diff = mode_diff
+        self.mode_check: bool = mode_check
+        self.mode_diff: bool = mode_diff
 
-        self.limit: str = self._build_csv(limit)
-        self.host_pattern = host_pattern
+        self.limit: (str, None) = self._build_csv(limit)
+        self.host_pattern: (str, None) = host_pattern
 
-        self.tags = self._build_csv(tags)
-        self.skip_tags = self._build_csv(skip_tags)
+        self.tags: (str, None) = self._build_csv(tags)
+        self.skip_tags: (str, None) = self._build_csv(skip_tags)
 
-        self.extra_vars = extra_vars
-        self.env_vars = env_vars
-        self.env_vars_strip = env_vars_strip
-        self.cmd_args = self._build_cmd_args(cmd_args)
+        self.extra_vars: (dict, None) = extra_vars
+        self.env_vars: (dict, None) = env_vars
+        self.env_vars_strip: (list[str], None) = env_vars_strip
+        self.cmd_args: (str, list[str], None) = self._build_cmd_args(cmd_args)
 
-        self.connect_user = connect_user
-        self._connect_pass = self._build_pass(
+        self.connect_user: (str, None) = connect_user
+        self._connect_pass: (str, None) = self._build_pass(
             which_pass='connect_pass',
             pass_value=connect_pass_value,
             pass_file=connect_pass_file,
         )
-        self.become_user = become_user
-        self._become_pass = self._build_pass(
+        self.become_user: (str, None) = become_user
+        self._become_pass: (str, None) = self._build_pass(
             which_pass='become_pass',
             pass_value=become_pass_value,
             pass_file=become_pass_file,
         )
-        self._ssh_key = self._build_pass(
+        self._ssh_key: (str, None) = self._build_pass(
             which_pass='ssh_key',
             pass_value=ssh_key_value,
             pass_file=ssh_key_file,
         )
-        self._vault_pass = self._build_pass(
+        self._vault_pass: (str, None) = self._build_pass(
             which_pass='vault_pass',
             pass_value=vault_pass_value,
             pass_file=vault_pass_file,
         )
-        self.vault_id = self._build_list(vault_id)
+        self.vault_id: (list[str], None) = self._build_list(vault_id)
 
-        self.verbosity = verbosity
+        self.verbosity: (str, int, None) = verbosity
 
-        self.ssh_known_hosts_file = ssh_known_hosts_file
+        self.ssh_known_hosts_file: (str, Path, None) = ssh_known_hosts_file
 
-        self.containerized = containerized
-        self.container_engine = self._build_container_engine(
+        self.containerized: bool = containerized
+        self.container_engine: str = self._build_container_engine(
             containerized=containerized,
             engine=container_engine,
         )
-        self.container_image = self._build_container_image(container_image)
-        self.timeout_sec_run = timeout_sec_run
-        self.timeout_sec_start = timeout_sec_start
+        self.container_image: str = self._build_container_image(container_image)
+        self.timeout_sec_run: int = timeout_sec_run
+        self.timeout_sec_start: int = timeout_sec_start
 
-        self.log_file_mode = log_file_mode
-        self.log_file_owner_group = log_file_owner_group
-        self.log_stdout_file = self._build_log_file(
+        self.log_file_mode: int = log_file_mode
+        self.log_file_owner_group: (int, str, None) = log_file_owner_group
+        self.log_stdout_file: (Path, None) = self._build_log_file(
             which_log='stdout',
             file=log_stdout_file,
         )
-        self.log_stderr_file = self._build_log_file(
+        self.log_stderr_file: (Path, None) = self._build_log_file(
             which_log='stderr',
             file=log_stderr_file,
         )
 
         self.validate()
 
+    def _build_playbook_file(self, playbook_file: (str, Path, None)) -> (Path, None):
+        if playbook_file is None:
+            return None
+
+        return self._translate_absolute_path_inside_playbook_dir(playbook_file)
+
     @staticmethod
-    def _build_playbook_dir(playbook_dir: (str, None)) -> Path:
+    def _build_playbook_dir(playbook_dir: (str, Path, None), playbook_file: (str, Path, None)) -> Path:
         if playbook_dir is None:
-            playbook_dir = getcwd()
+            if playbook_file is not None and str(playbook_file).startswith('/') and Path(playbook_file).is_file():
+                playbook_dir = Path(playbook_file).parent
+
+            else:
+                playbook_dir = getcwd()
 
         return Path(playbook_dir)
+
+    def _build_inventory_files(self, inventory_files) -> (None, list[Path]):
+        inventory_files = self._build_list(inventory_files)
+
+        if inventory_files is None:
+            return None
+
+        if not isinstance(inventory_files, list):
+            # will fail validation
+            return inventory_files
+
+        updated_inventory_files = []
+        for iv in inventory_files:
+            updated_inventory_files.append(
+                self._translate_absolute_path_inside_playbook_dir(iv)
+            )
+
+        return updated_inventory_files
+
+    def _translate_absolute_path_inside_playbook_dir(self, path: (str, Path)) -> Path:
+        # ensure we use relative paths for files/dirs inside the playbook_dir (easier for containerization)
+        if not str(path).startswith('/'):
+            return path
+
+        if not str(path).startswith(str(self.playbook_dir)):
+            return path
+
+        path = str(path).replace(str(self.playbook_dir), '')
+        if path.startswith('/'):
+            path = path[1:]
+
+        return Path(path)
 
     @staticmethod
     def _build_list(value: (str, list[str], None)) -> (list[str], None):
@@ -479,6 +521,12 @@ class ExecutionConfig:
         self._validate_paths(path=self.playbook_file, which_var='playbook_file')
 
         if str(self.playbook_file).startswith('/'):
+            if not str(self.playbook_file).startswith(str(self.playbook_dir)):
+                raise SetupError(
+                    f"Provided 'playbook_file' should be placed inside the 'playbook_dir'! "
+                    f"({self.playbook_file} not in {self.playbook_dir})"
+                )
+
             path_pb = Path(self.playbook_file)
 
         else:
@@ -497,7 +545,7 @@ class ExecutionConfig:
         for iv in self.inventory_files:
             self._validate_paths(path=iv, which_var='inventory_files')
 
-            if iv.startswith('/'):
+            if str(iv).startswith('/'):
                 path_iv = Path(iv)
 
             else:
