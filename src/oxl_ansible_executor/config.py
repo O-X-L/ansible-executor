@@ -1,10 +1,8 @@
-from os import environ
 from pathlib import Path
+from os import environ, getuid
 
 LOG_TIME_FORMAT = '%Y-%m-%d %H:%M:%S %z'
-# todo: change to locally built image
-#   (build-arg UID or executing user because of mount/volume file-privileges..)
-FALLBACK_CONTAINER_IMAGE = 'oxlorg/ansible-executor'
+FALLBACK_CONTAINER_IMAGE = f'localhost/ansible-executor:{getuid()}'
 
 DEFAULT_LOG_DIR = Path(f"{environ.get('HOME', '')}/.local/share/oxl-ansible-executor")
 

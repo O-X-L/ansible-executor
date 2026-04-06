@@ -1,11 +1,6 @@
 from pathlib import Path
-from copy import deepcopy
-from time import sleep, time
-from threading import Thread
 from shutil import which as find_executable
-from signal import SIGINT, SIGKILL, SIGTERM
 
-from utils.debug import log
 from utils.subps import Process, ProcessArgs
 
 from runner_executor_base import ExecutorBase
@@ -50,12 +45,7 @@ class ExecutorLocal(ExecutorBase):
     def prepare_engine(self):
         pass
 
-    def _wait_for_process_to_finish(self):
-        self.process.wait_until_finished()
-        self._set_process_result()
-        self.process.close()
-
-    def _execute_command(self, cmd: list[str]):
+    def _create_process(self, cmd: list[str]):
         process_args = ProcessArgs(
             cwd=self.config.playbook_dir,
             timeout_sec=self.config.timeout_sec_run,
@@ -66,40 +56,5 @@ class ExecutorLocal(ExecutorBase):
         )
         self.process = Process(cmd=cmd, args=process_args)
 
-        t = Thread(target=self._wait_for_process_to_finish)
-        self.process_thread.append(t)
-        t.start()
-
-        self._process_control_loop()
-
-    def _set_process_result(self):
-        if self.result is None:
-            self.result = deepcopy(self.process.result)
-
-        if self.time_finish == -1:
-            self.time_finish = int(time())
-
-    def _process_control_loop(self):
-        while self.result is None:  # todo: add timeout
-            sleep(0.1)
-
-            if self.process.result.rc != -1 and self.result is None:
-                self._set_process_result()
-                break
-
-            if self.signal_stop:
-                if not self.config.silent:
-                    log('Stopping execution')
-
-                self.process.send_signal(SIGINT)
-                sleep(2)
-                if self.result is None:
-                    self.process.send_signal(SIGKILL)
-
-                sleep(2)
-                if self.result is None:
-                    self.process.send_signal(SIGTERM)
-
-                break
-
-        self._set_process_result()
+    def _send_signal_to_ansible(self, signal: int):
+        self.process.send_signal(signal)

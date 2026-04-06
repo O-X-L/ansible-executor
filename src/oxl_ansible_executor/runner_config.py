@@ -183,11 +183,21 @@ class ExecutionConfig:
 
         container_image:
             Container-image to run ansible in.
-            By default, the image 'oxlorg/ansible-executor' is used.
+            By default, a minimal local container-image is built. (localhost/ansible-executor:${UID})
             If you require additional dependencies to be installed, you should use your own.
             You can also use images that are only available locally on your docker-engine server. (built manually)
 
             Dockerfile: https://github.com/O-X-L/ansible-executor/blob/latest/docker/Dockerfile_executor
+
+        container_image_pull:
+            With this option enabled, the executor will check-for & pull your configured image every time before
+                executing.
+            If this option is disabled - it will only be pulled if it does not already exist.
+            This option is ignored if the default/fallback image is used.
+
+        container_network:
+            Optionally set the container-engine-network that should be used for the ansible-executor container.
+            See: '--network' container-engine-option
 
         timeout_sec_run:
             Maximum time in seconds that an ansible-playbook execution is allowed to run.
@@ -196,6 +206,9 @@ class ExecutionConfig:
 
         timeout_sec_start:
             Maximum time in seconds that the pre-start (before the ansible-playbook is started) is allowed to take.
+
+        timeout_container_image_pull_build:
+            Maximum time a container-image pull or build (fallback-image only) is allowed to take.
 
         run_dir:
             Path to an existing runtime-directory that is used to store some temporary data in.
@@ -263,8 +276,11 @@ class ExecutionConfig:
             containerized: bool = False,
             container_engine: str = None,
             container_image: str = None,
-            timeout_sec_run: int = 60 * 60,  # 1h
-            timeout_sec_start: int = 300,  # 5m
+            container_image_pull: bool = False,
+            container_network: str = None,
+            timeout_sec_run: int = 60 * 60,
+            timeout_sec_start: int = 5 * 60,
+            timeout_container_image_pull_build: int = 3 * 60,
             run_dir: (str, Path) = None,
             log_stdout_file: (str, Path) = None,
             log_stderr_file: (str, Path) = None,
@@ -273,7 +289,7 @@ class ExecutionConfig:
     ):
         self.playbook_dir: Path = self._build_playbook_dir(playbook_dir=playbook_dir, playbook_file=playbook_file)
         self.playbook_file: (str, Path) = self._build_playbook_file(playbook_file)
-        self.inventory_files: list[str|Path] = self._build_inventory_files(inventory_files)
+        self.inventory_files: (list[str|Path], None) = self._build_inventory_files(inventory_files)
         self.run_dir: (Path, None) = run_dir
 
         self.mode_check: bool = mode_check
@@ -326,8 +342,11 @@ class ExecutionConfig:
             engine=container_engine,
         )
         self.container_image: str = self._build_container_image(container_image)
+        self.container_image_pull: bool = container_image_pull
+        self.container_network: (str, None) = container_network
         self.timeout_sec_run: int = timeout_sec_run
         self.timeout_sec_start: int = timeout_sec_start
+        self.timeout_container_image_pull_build: int = timeout_container_image_pull_build
 
         self.log_file_mode: int = log_file_mode
         self.log_file_owner_group: (int, str, None) = log_file_owner_group
@@ -640,7 +659,7 @@ class ExecutionConfig:
             raise ConfigError(f"Got bad type for '{which_var}' : {type(path)} (should be str or Path)")
 
     def _validate_bools(self):
-        for attr in ['mode_check', 'mode_diff', 'containerized', 'output_color', 'silent']:
+        for attr in ['mode_check', 'mode_diff', 'containerized', 'output_color', 'silent', 'container_image_pull']:
             value = getattr(self, attr)
             if not isinstance(value, bool):
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be bool)")
@@ -656,7 +675,7 @@ class ExecutionConfig:
             raise ConfigError(f"Got bad type for 'env_vars_strip': '{type(self.env_vars_strip)}' (should be list)")
 
     def _validate_times(self):
-        for attr in ['timeout_sec_run', 'timeout_sec_start']:
+        for attr in ['timeout_sec_run', 'timeout_sec_start', 'timeout_container_image_pull_build']:
             value = getattr(self, attr)
             if not isinstance(value, int):
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be int)")
@@ -665,6 +684,12 @@ class ExecutionConfig:
         if self.timeout_sec_start < 10:
             raise ConfigError(
                 f"Provided 'timeout_sec_start' is too low: '{self.timeout_sec_start}' (should be at least 10)",
+            )
+
+        if self.timeout_container_image_pull_build < 30:
+            raise ConfigError(
+                f"Provided 'timeout_container_image_pull_build' is too low: "
+                f"'{self.timeout_container_image_pull_build}' (should be at least 30)",
             )
 
     def _validate_log_file_settings(self):

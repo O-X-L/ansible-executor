@@ -1,12 +1,13 @@
-from time import sleep
+from os import getuid
 from pathlib import Path
+from time import sleep, time
 from shutil import which as find_executable
 
 from utils.debug import log
 from utils.subps import process
 from utils.util import get_random_str
 from exceptions import ExecutionError
-from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN
+from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, FALLBACK_CONTAINER_IMAGE
 
 from runner_executor_base import ExecutorBase
 from runner_executor_command import AnsibleCommand
@@ -14,6 +15,15 @@ from runner_executor_command import AnsibleCommand
 
 class ExecutorContainer(ExecutorBase):
     CONTAINER_ENGINE_NAME = None
+    CONTAINER_PATHS = {
+        'playbook_dir': '/run/ansible',
+        'inventory_files': '/run/ansible_inventory',
+        'pipe_ssh_key': f'/run/.{get_random_str(20)}',
+        'pipe_connect_pass': f'/run/.{get_random_str(20)}',
+        'pipe_become_pass': f'/run/.{get_random_str(20)}',
+        'pipe_vault_pass': f'/run/.{get_random_str(20)}',
+        'ssh_known_hosts_file': f'/run/.{get_random_str(20)}',
+    }
 
     def _engine_init(
             self,
@@ -26,13 +36,23 @@ class ExecutorContainer(ExecutorBase):
             raise NotImplementedError('CONTAINER_ENGINE_NAME has to be defined!')
 
         self.engine_executable = self._build_engine_executable()
-        self._container_volumes = {
-            str(self.config.playbook_dir): '/run/ansible',
-        }
+        self._container_volumes = self._build_container_volumes(
+            pipe_ssh_key=pipe_ssh_key,
+            pipe_connect_pass=pipe_connect_pass,
+            pipe_become_pass=pipe_become_pass,
+            pipe_vault_pass=pipe_vault_pass,
+        )
+        cmd_paths = self._build_paths_inside_container(
+            pipe_ssh_key=pipe_ssh_key,
+            pipe_connect_pass=pipe_connect_pass,
+            pipe_become_pass=pipe_become_pass,
+            pipe_vault_pass=pipe_vault_pass,
+        )
         self._ansible_command = AnsibleCommand(
             config=self.config,
-            **self._build_paths_inside_container()
+            **cmd_paths,
         )
+        self._container_name = self._build_container_name()
 
     def _build_engine_executable(self) -> str:
         executable = find_executable(self.CONTAINER_ENGINE_NAME)
@@ -41,78 +61,224 @@ class ExecutorContainer(ExecutorBase):
 
         return self.CONTAINER_ENGINE_NAME
 
-    def _build_paths_inside_container(self) -> dict:
-        container_files = {
-            'pipe_ssh_key': f'/run/.{get_random_str(20)}',
-            'pipe_pipe_connect_pass': f'/run/.{get_random_str(20)}',
-            'pipe_pipe_become_pass': f'/run/.{get_random_str(20)}',
-            'pipe_pipe_vault_pass': f'/run/.{get_random_str(20)}',
-            'ssh_known_hosts_file': f'/run/.{get_random_str(20)}',
-            'inventory_files': Path('/run/ansible_inventory'),
+    def _build_container_volumes(
+            self,
+            pipe_ssh_key: Path = None,
+            pipe_connect_pass: Path = None,
+            pipe_become_pass: Path = None,
+            pipe_vault_pass: Path = None,
+    ) -> dict:
+        volumes = {
+            str(self.config.playbook_dir): self.CONTAINER_PATHS['playbook_dir'],
         }
 
+        if self.config.inventory_files is not None:
+            for i, iv in enumerate(self.config.inventory_files):
+                iv_str = str(iv)
+                if iv_str.startswith('/'):
+                    iv_inside = Path(self.CONTAINER_PATHS['inventory_files']) / str(i)
+                    volumes[iv_str] = str(iv_inside)
+
+        if pipe_ssh_key is not None:
+            volumes[str(pipe_ssh_key)] = self.CONTAINER_PATHS['pipe_ssh_key']
+
+        if pipe_connect_pass is not None:
+            volumes[str(pipe_connect_pass)] = self.CONTAINER_PATHS['pipe_connect_pass']
+
+        if pipe_become_pass is not None:
+            volumes[str(pipe_become_pass)] = self.CONTAINER_PATHS['pipe_become_pass']
+
+        if pipe_vault_pass is not None:
+            volumes[str(pipe_vault_pass)] = self.CONTAINER_PATHS['pipe_vault_pass']
+
+        if self.config.ssh_known_hosts_file is not None:
+            ssh_kh_str = str(self.config.ssh_known_hosts_file)
+            if ssh_kh_str.startswith('/'):
+                volumes[ssh_kh_str] = self.CONTAINER_PATHS['ssh_known_hosts_file']
+
+        return volumes
+
+    def _build_paths_inside_container(
+            self,
+            pipe_ssh_key: Path = None,
+            pipe_connect_pass: Path = None,
+            pipe_become_pass: Path = None,
+            pipe_vault_pass: Path = None,
+    )-> dict:
         paths = {
-            'pipe_ssh_key': container_files['pipe_ssh_key'],
-            'pipe_connect_pass': container_files['pipe_connect_pass'],
-            'pipe_become_pass': container_files['pipe_become_pass'],
-            'pipe_vault_pass': container_files['pipe_vault_pass'],
+            'pipe_ssh_key': None,
+            'pipe_connect_pass': None,
+            'pipe_become_pass': None,
+            'pipe_vault_pass': None,
             'inventory_files': [],
             'ssh_known_hosts_file': None,
         }
 
-        for i, iv in enumerate(self.config.inventory_files):
-            if str(iv).startswith('/'):
-                iv_inside = container_files['inventory_files'] / str(i)
-                self._container_volumes[str(iv)] = str(iv_inside)
-                paths['inventory_files'].append(iv_inside)
+        if self.config.inventory_files is not None:
+            for iv in self.config.inventory_files:
+                iv_str = str(iv)
+                if iv_str in self._container_volumes:
+                    paths['inventory_files'].append(self._container_volumes[iv_str])
+
+                else:
+                    paths['inventory_files'].append(iv)
+
+        if pipe_ssh_key is not None:
+            paths['pipe_ssh_key'] = self.CONTAINER_PATHS['pipe_ssh_key']
+
+        if pipe_connect_pass is not None:
+            paths['pipe_connect_pass'] = self.CONTAINER_PATHS['pipe_connect_pass']
+
+        if pipe_become_pass is not None:
+            paths['pipe_become_pass'] = self.CONTAINER_PATHS['pipe_become_pass']
+
+        if pipe_vault_pass is not None:
+            paths['pipe_vault_pass'] = self.CONTAINER_PATHS['pipe_vault_pass']
+
+        if self.config.ssh_known_hosts_file is not None:
+            ssh_kh_str = str(self.config.ssh_known_hosts_file)
+            if ssh_kh_str in self._container_volumes:
+                paths['ssh_known_hosts_file'].append(self._container_volumes[ssh_kh_str])
 
             else:
-                paths['inventory_files'].append(iv)
-
-        if str(self.config.ssh_known_hosts_file).startswith('/'):
-            ssh_kh_inside = container_files['ssh_known_hosts_file']
-            self._container_volumes[str(self.config.ssh_known_hosts_file)] = ssh_kh_inside
-            paths['ssh_known_hosts_file'].append(ssh_kh_inside)
-
-        else:
-            paths['ssh_known_hosts_file'].append(self.config.ssh_known_hosts_file)
+                paths['ssh_known_hosts_file'].append(self.config.ssh_known_hosts_file)
 
         return paths
 
-    def prepare_engine(self):
-        self._pull_container_image()
+    @staticmethod
+    def _build_container_name() -> str:
+        return f'ansible-executor-{int(time())}-{get_random_str(5)}'
 
-    def _pull_container_image(self):
-        # todo: log output to log-files
+    def prepare_engine(self):
+        self._prepare_container_image()
+
+    def _prepare_container_image(self):
+        image_query = process(
+            cmd=[self.engine_executable, 'images', '-q', self.config.container_image],
+            timeout_sec=5,
+            file_stderr=self.config.log_stderr_file,
+        )
+        configured_image_exists = image_query.stdout is not None
+
+        if self.config.container_image == FALLBACK_CONTAINER_IMAGE:
+            if not configured_image_exists:
+                self._build_container_image_fallback()
+
+            return
+
+        self._pull_container_image(configured_image_exists)
+
+    def _pull_container_image(self, configured_image_exists: bool):
+        if configured_image_exists and not self.config.container_image_pull:
+            # optional update
+            return
+
+        if not self.config.silent:
+            log(f'Pulling container-image: {self.config.container_image}')
+
         image_pull = process(
             cmd=[self.engine_executable, 'image', 'pull', self.config.container_image],
-            timeout_sec=3 * 60,
+            timeout_sec=self.config.timeout_container_image_pull_build,
+            file_stdout=self.config.log_stdout_file,
+            file_stderr=self.config.log_stderr_file,
         )
         if not image_pull.failed:
             return
 
-        image_query = process(
-            cmd=[self.engine_executable, 'images', '-q', self.config.container_image],
-            timeout_sec=10,
-        )
         msg = f"Failed to pull container image: '{self.config.container_image}'"
 
         # only fail if the image does not exist and could not be pulled
-        if image_query.stdout is None:
+        if not configured_image_exists:
             raise ExecutionError(msg)
 
         if not self.config.silent:
             log(msg)
 
+    def _build_container_image_fallback(self):
+        if not self.config.silent:
+            log('Building fallback container-image')
+
+        path_dockerfile = Path(__file__).parent / 'container'
+
+        cmd = [
+            self.engine_executable,
+            'build',
+            '-f',
+            'Dockerfile',
+            '-t',
+            FALLBACK_CONTAINER_IMAGE,
+            '--network',
+            'host',
+            '--no-cache',
+            '--build-arg',
+            f'AR_UID=${getuid()}',
+            '.',
+        ]
+        if not self.config.silent:
+            log(f'Build command: {cmd}')
+
+        image_build = process(
+            cmd=cmd,
+            cwd=path_dockerfile,
+            timeout_sec=self.config.timeout_container_image_pull_build,
+            file_stdout=self.config.log_stdout_file,
+            file_stderr=self.config.log_stderr_file,
+        )
+
+        if image_build.failed:
+            raise ExecutionError(f"Failed to build fallback container-image: '{FALLBACK_CONTAINER_IMAGE}'")
+
     def generate_ansible_command(self) -> list[str]:
         return self._ansible_command.generate()
 
+    def _generate_container_args_volumes(self) -> list[str]:
+        args = []
+        for path_host, path_container in self._container_volumes.items():
+            args.extend([
+                '-v',
+                f"{path_host}:{path_container}:ro",
+            ])
+
+        return args
+
+    def _generate_container_args_network(self) -> list[str]:
+        if self.config.container_network is None:
+            return []
+
+        return [
+            '--network',
+            self.config.container_network,
+        ]
+
     def generate_engine_command(self) -> list[str]:
+        cmd = [self.engine_executable, 'run', '--name', self._container_name]
+        cmd.extend(self._generate_container_args_volumes())
+        cmd.extend(self._generate_container_args_network())
+        cmd.append(self.config.container_image)
+
+        if not self.config.silent:
+            log(f"Engine command: {cmd}")
+
         raise NotImplementedError('Engine command has to be implemented!')
 
-    def _execute_command(self, cmd: list[str]) -> dict:
+    def _create_process(self, cmd: list[str]) -> dict:
         sleep(30)
         return {}
+
+    def _send_signal_to_ansible(self, signal: int):
+        cmd = [
+            self.engine_executable,
+            'kill',
+            '--signal',
+            signal,
+            self._container_name,
+        ]
+        process(
+            cmd=cmd,
+            timeout_sec=5,
+            file_stdout=self.config.log_stdout_file,
+            file_stderr=self.config.log_stderr_file,
+        )
 
 
 class ExecutorContainerDocker(ExecutorContainer):

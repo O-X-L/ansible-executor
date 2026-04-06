@@ -1,13 +1,14 @@
 FROM python:3.14-alpine
 
 ARG AR_UID=1000
-ARG AW_USER=ar
+ARG AR_USER=ar
 
-RUN apk add --update --no-cache git git-lfs openssh-client sshpass openssl && \
+RUN apk add --update --no-cache git git-lfs openssh-client sshpass openssl >/dev/null && \
     pip install --no-cache-dir --upgrade pip 2>/dev/null && \
-    pip install ansible-core ara passlib netaddr jmespath cryptography && \
+    pip install ansible-core ara passlib netaddr jmespath cryptography >/dev/null && \
     adduser --uid ${AR_UID} --home /home/ansible-executor --shell /usr/sbin/nologin --disabled-password ${AR_USER} ${AR_USER} && \
-    chown -R ${AR_USER}:${AR_USER} /play
+    mkdir -p /run/ansible && \
+    chown -R ${AR_USER}:${AR_USER} /run/ansible
 
 ENV PYTHONUNBUFFERED=1
 
