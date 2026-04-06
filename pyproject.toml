@@ -7,10 +7,10 @@ name = "oxl-ansible-executor"
 authors = [
     {name = "Pascal Rath", email = "rath@oxl.at"},
 ]
-description = "Basic Runner/Executor for Ansible-Playbooks"
+description = "Simple & Transparent Executor for Ansible-Playbooks"
 readme = "README.md"
 requires-python = ">=3.11"
-keywords = ["ansible", "runner", "automation", "iac"]
+keywords = ["ansible", "executor", "runner", "automation", "iac"]
 license = {file = "LICENSE.txt"}
 classifiers = [
     'Programming Language :: Python :: 3',
