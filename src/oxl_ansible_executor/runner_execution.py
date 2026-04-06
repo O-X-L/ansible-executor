@@ -28,7 +28,7 @@ def _write_secret_to_pipe(file: str, secret: str):
 class Execution:
     # pylint: disable=R0902
     def __init__(self, config: ExecutionConfig):
-        self.config = deepcopy(config)  # make sure the source-config is re-usable and not modified
+        self.config: ExecutionConfig = deepcopy(config)  # make sure the source-config is re-usable and not modified
 
         self._status = ExecutionStatus(self.config)
         self.__started = False
@@ -111,6 +111,9 @@ class Execution:
         self._executor.prepare_engine()
 
     def _execute_blocking(self):
+        if not self.config.silent:
+            log(f"Using log files: {self.config.log_stdout_file} & {self.config.log_stderr_file}")
+
         self._executor.execute()
 
     def _execute_non_blocking(self):

@@ -1,10 +1,11 @@
 from pathlib import Path
 from shutil import which as find_executable
 
+from utils.debug import log
 from utils.subps import Process, ProcessArgs
 
 from runner_executor_base import ExecutorBase
-from runner_executor_command import AnsibleCommand
+from runner_executor_command import AnsibleCommand, wrap_cmd_in_ssh_agent
 
 
 class ExecutorLocal(ExecutorBase):
@@ -16,7 +17,7 @@ class ExecutorLocal(ExecutorBase):
             pipe_vault_pass: Path = None,
     ):
         self.engine_executable = self._build_engine_executable()
-        self._ansible_command = AnsibleCommand(
+        self._ansible_command_generator = AnsibleCommand(
             config=self.config,
             pipe_ssh_key=pipe_ssh_key,
             pipe_connect_pass=pipe_connect_pass,
@@ -25,6 +26,7 @@ class ExecutorLocal(ExecutorBase):
             inventory_files=self.config.inventory_files,
             ssh_known_hosts_file=self.config.ssh_known_hosts_file,
         )
+        self.ansible_command = self._ansible_command_generator.generate()
 
     @staticmethod
     def _build_engine_executable() -> str:
@@ -34,12 +36,16 @@ class ExecutorLocal(ExecutorBase):
 
         return 'ansible-playbook'
 
-    def generate_ansible_command(self) -> list[str]:
-        return self._ansible_command.generate()
-
     def generate_engine_command(self) -> list[str]:
-        cmd = self.generate_ansible_command()
+        cmd = self.ansible_command.copy()
         cmd[0] = self.engine_executable
+        # pylint: disable=W0212
+        if self.config._ssh_key is not None:
+            return wrap_cmd_in_ssh_agent(cmd=cmd, ssh_key_file=self._pipe_ssh_key)
+
+        if not self.config.silent:
+            log(f"Engine command: {cmd}")
+
         return cmd
 
     def prepare_engine(self):

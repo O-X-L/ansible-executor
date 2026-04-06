@@ -10,7 +10,7 @@ from exceptions import ExecutionError
 from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, FALLBACK_CONTAINER_IMAGE
 
 from runner_executor_base import ExecutorBase
-from runner_executor_command import AnsibleCommand
+from runner_executor_command import AnsibleCommand, wrap_cmd_in_ssh_agent
 
 
 class ExecutorContainer(ExecutorBase):
@@ -48,10 +48,11 @@ class ExecutorContainer(ExecutorBase):
             pipe_become_pass=pipe_become_pass,
             pipe_vault_pass=pipe_vault_pass,
         )
-        self._ansible_command = AnsibleCommand(
+        self._ansible_command_generator = AnsibleCommand(
             config=self.config,
             **cmd_paths,
         )
+        self.ansible_command = self._ansible_command_generator.generate()
         self._container_name = self._build_container_name()
 
     def _build_engine_executable(self) -> str:
@@ -228,9 +229,6 @@ class ExecutorContainer(ExecutorBase):
         if image_build.failed:
             raise ExecutionError(f"Failed to build fallback container-image: '{FALLBACK_CONTAINER_IMAGE}'")
 
-    def generate_ansible_command(self) -> list[str]:
-        return self._ansible_command.generate()
-
     def _generate_container_args_volumes(self) -> list[str]:
         args = []
         for path_host, path_container in self._container_volumes.items():
@@ -255,6 +253,13 @@ class ExecutorContainer(ExecutorBase):
         cmd.extend(self._generate_container_args_volumes())
         cmd.extend(self._generate_container_args_network())
         cmd.append(self.config.container_image)
+
+        inside_cmd = self.ansible_command.copy()
+        # pylint: disable=W0212
+        if self.config._ssh_key is not None:
+            inside_cmd = wrap_cmd_in_ssh_agent(cmd=inside_cmd, ssh_key_file=self._pipe_ssh_key)
+
+        cmd.extend(inside_cmd)
 
         if not self.config.silent:
             log(f"Engine command: {cmd}")

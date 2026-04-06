@@ -1,3 +1,4 @@
+from shlex import quote
 from pathlib import Path
 from json import dumps as json_dumps
 
@@ -33,13 +34,13 @@ class AnsibleCommand:
         # pylint: disable=W0212
         args = []
         if self.config.connect_user is not None:
-            args.extend(['--user', self.config.connect_user])
+            args.extend(['-u', self.config.connect_user])
 
         if self.config._ssh_key is not None and self.__secret_pipe_ssh_key is not None:
-            args.extend(['--private-key', str(self.__secret_pipe_ssh_key)])
+            args.extend(['--key-file', str(self.__secret_pipe_ssh_key)])
 
         if self.config._connect_pass is not None and self.__secret_pipe_connect_pass is not None:
-            args.extend(['--connection-password-file', str(self.__secret_pipe_connect_pass)])
+            args.extend(['--conn-pass-file', str(self.__secret_pipe_connect_pass)])
 
         if self.ssh_known_hosts_file is not None:
             args.extend([
@@ -51,10 +52,10 @@ class AnsibleCommand:
             args.extend(['--become-user', self.config.become_user])
 
         if self.config._become_pass is not None and self.__secret_pipe_become_pass is not None:
-            args.extend(['--become-password-file', str(self.__secret_pipe_become_pass)])
+            args.extend(['--become-pass-file', str(self.__secret_pipe_become_pass)])
 
         if self.config._vault_pass is not None and self.__secret_pipe_vault_pass is not None:
-            args.extend(['--vault-password-file', str(self.__secret_pipe_vault_pass)])
+            args.extend(['--vault-pass-file', str(self.__secret_pipe_vault_pass)])
 
         if self.config.vault_id is not None:
             for vault_id in self.config.vault_id:
@@ -69,19 +70,19 @@ class AnsibleCommand:
                 args.extend(['-i', str(i)])
 
         if self.config.mode_check:
-            args.append('--check')
+            args.append('-C')
 
         if self.config.mode_diff:
-            args.append('--diff')
+            args.append('-D')
 
         if self.config.limit is not None:
-            args.extend(['--limit', self.config.limit])
+            args.extend(['-l', self.config.limit])
 
         if self.config.verbosity is not None:
             args.append(f'-{self.config.verbosity}')
 
         if self.config.tags is not None:
-            args.extend(['--tags', self.config.tags])
+            args.extend(['-t', self.config.tags])
 
         if self.config.skip_tags is not None:
             args.extend(['--skip-tags', self.config.skip_tags])
@@ -117,3 +118,12 @@ class AnsibleCommand:
 
         cmd.append(str(self.config.playbook_file))
         return cmd
+
+
+def wrap_cmd_in_ssh_agent(cmd: list[str], ssh_key_file: Path) -> list[str]:
+    cmd_str = ' '.join([quote(a) for a in cmd])
+    return [
+        'ssh-agent',
+        'sh', '-c',
+        f"ssh-add {ssh_key_file} && {cmd_str}",
+    ]

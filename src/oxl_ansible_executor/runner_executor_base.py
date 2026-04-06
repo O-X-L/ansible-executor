@@ -28,7 +28,9 @@ class ExecutorBase(ABC):
         self.time_finish: int = -1
         self.timed_out: bool = False
         self.command: list[str] = None
+        self.ansible_command: list[str] = None
 
+        self._pipe_ssh_key = pipe_ssh_key
         self._engine_init(
             pipe_ssh_key=pipe_ssh_key,
             pipe_connect_pass=pipe_connect_pass,
@@ -128,10 +130,6 @@ class ExecutorBase(ABC):
     @abstractmethod
     def _send_signal_to_ansible(self, signal: int):
         raise NotImplementedError('Sending signals to ansible has to be implemented!')
-
-    @abstractmethod
-    def generate_ansible_command(self) -> list[str]:
-        raise NotImplementedError('Command-generation has to be implemented!')
 
     @abstractmethod
     def generate_engine_command(self) -> list[str]:

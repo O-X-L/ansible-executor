@@ -1,19 +1,60 @@
 #!/usr/bin/env python3
 
 from time import sleep
-from os import environ
 from pathlib import Path
+from tempfile import mktemp
+from os import environ
+from os import remove as remove_file
 from sys import exit as sys_exit
+from atexit import register as run_at_exit
 
 from oxl_ansible_executor import Execution, ExecutionConfig, \
     ConfigError, SetupError, PreparationError, ExecutionError
 
+# SETUP
+
 PATH_TESTDATA = Path(__file__).parent.parent / 'testdata'
 LOG_VERBOSE = environ.get('AR_TEST_VERBOSE', '1') == '1'  # set env-var to 0 to only get brief results
+environ.setdefault('ANSIBLE_LOCALHOST_WARNING', '0')
+
+SSH_KEY_FILE = mktemp(prefix='ar_test_')
+CONNECT_PWD_FILE = mktemp(prefix='ar_test_')
+BECOME_PWD_FILE = mktemp(prefix='ar_test_')
+VAULT_PWD_FILE = mktemp(prefix='ar_test_')
+with open(SSH_KEY_FILE, 'wb') as f:
+    f.write(b'''-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACCx05E0HFxCKLvd6he9EpvQnv+nzlCCo5dbEGLkiD0gyQAAAJD9i8+W/YvP
+lgAAAAtzc2gtZWQyNTUxOQAAACCx05E0HFxCKLvd6he9EpvQnv+nzlCCo5dbEGLkiD0gyQ
+AAAEAJ5zfDQBaEbidne6fHzaTif4Rdud5vveMfveWVx72G4rHTkTQcXEIou93qF70Sm9Ce
+/6fOUIKjl1sQYuSIPSDJAAAACXJhdGhAZ2F0ZQECAwQ=
+-----END OPENSSH PRIVATE KEY-----
+''')  # NOTE: this is a dummy-key just created for this test
+
+with open(CONNECT_PWD_FILE, 'wb') as f:
+    f.write(b'connect-placeholder')
+
+with open(BECOME_PWD_FILE, 'wb') as f:
+    f.write(b'become-placeholder')
+
+with open(VAULT_PWD_FILE, 'wb') as f:
+    f.write(b'SuperSecret!')
+
+
+def cleanup_tmpfiles():
+    remove_file(SSH_KEY_FILE)
+    remove_file(CONNECT_PWD_FILE)
+    remove_file(BECOME_PWD_FILE)
+    remove_file(VAULT_PWD_FILE)
+
+
+run_at_exit(cleanup_tmpfiles)
+
+# TEST CONFIG
 
 TESTS = [
     {
-        'name': 'Play1 - basic targeting localhost',
+        'name': 'Basic targeting localhost',
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
@@ -23,7 +64,7 @@ TESTS = [
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
     },
     {
-        'name': 'Play1 - setting extra-vars',
+        'name': 'Using extra-vars',
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
@@ -34,7 +75,7 @@ TESTS = [
         'result': {'failed': True, 'finished': True, 'playbook_finished': True, 'timed_out': False},
     },
     {
-        'name': 'Play1 - setting env-vars',
+        'name': 'Using env-vars',
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
@@ -46,7 +87,7 @@ TESTS = [
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
     },
     {
-        'name': 'Play1 - output-color enabled',
+        'name': 'Output-color enabled',
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
@@ -57,7 +98,7 @@ TESTS = [
         'in_stdout': '\u001b[0;32m',
     },
     {
-        'name': 'Play1 - user stops execution',
+        'name': 'User stops execution',
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
@@ -71,7 +112,7 @@ TESTS = [
         'in_stderr': 'User interrupted execution',
     },
     {
-        'name': 'Play1 - execution timed-out',
+        'name': 'Execution timed-out',
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
@@ -85,7 +126,7 @@ TESTS = [
         'in_stderr': 'timed out after',
     },
     {
-        'name': 'Play1 - ansible-vault encrypted secret',
+        'name': 'Ansible-vault encrypted secret (as vault_pass_value)',
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
@@ -98,8 +139,57 @@ TESTS = [
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
         'in_stdout': 'This is Test5',
     },
+    {
+        'name': 'Ansible-vault encrypted secret (as vault_pass_file)',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'extra_vars': {'test': 'test5'},  # has a vault-secret configured
+            'vault_pass_file': VAULT_PWD_FILE,
+            'output_color': False,
+        },
+        'exception': None,
+        'blocking': True,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_stdout': 'This is Test5',
+    },
+    {
+        'name': 'Using connect-pass-file (without requiring it)',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': False,
+            'connect_pass_file': CONNECT_PWD_FILE,
+        },
+        'exception': None,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+    },
+    {
+        'name': 'Using become-pass-file (without requiring it)',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': False,
+            'become_pass_file': BECOME_PWD_FILE,
+        },
+        'exception': None,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+    },
+    {
+        'name': 'Using ssh-key-file (without requiring it)',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': False,
+            'ssh_key_file': SSH_KEY_FILE,
+        },
+        'exception': None,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_stderr': 'Identity added',
+    },
 ]
 
+# TEST LOGIC
 
 def log(msg: str):
     if LOG_VERBOSE:
@@ -147,6 +237,8 @@ for test_nr, test in enumerate(TESTS):
             if LOG_VERBOSE:
                 raise
 
+            continue
+
     log('[TEST-INFO] Result:')
     log(e.status)
 
@@ -165,6 +257,8 @@ for test_nr, test in enumerate(TESTS):
             if LOG_VERBOSE:
                 sys_exit(1)
 
+            continue
+
     if 'in_stdout' in test:
         if test['in_stdout'] not in e.status.process_result.stdout:
             log(
@@ -174,6 +268,8 @@ for test_nr, test in enumerate(TESTS):
             if LOG_VERBOSE:
                 sys_exit(1)
 
+            continue
+
     if 'in_stderr' in test:
         if test['in_stderr'] not in e.status.process_result.stderr:
             log(
@@ -182,6 +278,8 @@ for test_nr, test in enumerate(TESTS):
             test_failure(test_nr)
             if LOG_VERBOSE:
                 sys_exit(1)
+
+            continue
 
     log('[TEST-SUCCESS] Test finished successfully!')
     test_success(test_nr)

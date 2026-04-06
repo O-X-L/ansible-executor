@@ -31,6 +31,13 @@ class ExecutionStatus:
         return self._executor.timed_out
 
     @property
+    def ansible_command(self) -> (None, list[str]):
+        if self._executor is None:
+            return None
+
+        return self._executor.ansible_command
+
+    @property
     def process_command(self) -> (None, list[str]):
         if self._executor is None:
             return None
@@ -123,6 +130,7 @@ class ExecutionStatus:
             'time_duration_sec': self.time_duration_sec(),
             'log_stdout_file': str(self.log_stdout_file),
             'log_stderr_file': str(self.log_stderr_file),
+            'ansible_command': self.ansible_command,
             'process_command': self.process_command,
             'process_rc': self.process_rc,
             'process_result': self.process_result.to_dict(),

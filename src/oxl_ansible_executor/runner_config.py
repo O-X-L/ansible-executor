@@ -366,6 +366,7 @@ class ExecutionConfig:
         self._validate_playbook_file()
         self._validate_inventory_files()
         self._validate_run_dir()
+        self._validate_ssh_key_file()
         self._validate_ssh_known_hosts_file()
         self._validate_verbosity()
         self._validate_bools()
@@ -490,7 +491,7 @@ class ExecutionConfig:
 
         try:
             with open(pass_file, 'r', encoding='utf-8') as f:
-                return f.read().strip()
+                return f.read()
 
         except (OSError, PermissionError) as e:
             raise SetupError(f"Provided '{which_pass}_file' could not be loaded: '{e}'")
@@ -614,6 +615,13 @@ class ExecutionConfig:
 
         if not str(self.run_dir).startswith('/') and not self.silent:
             log("It is recommended to use absolute paths for 'run_dir'!")
+
+    def _validate_ssh_key_file(self):
+        if self._ssh_key is None or self.containerized:
+            return
+
+        if find_executable('ssh-agent') is None:
+            raise SetupError("To use ssh-keys the 'ssh-agent' has to be installed!")
 
     def _validate_ssh_known_hosts_file(self):
         if self.ssh_known_hosts_file is None:
