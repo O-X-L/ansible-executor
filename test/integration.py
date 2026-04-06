@@ -106,15 +106,15 @@ def log(msg: str):
         print(msg)
 
 
-def test_success():
-    print('☑ Success')
+def test_success(nr: int):
+    print(f'☑ Success: {nr}')
 
 
-def test_failure():
-    print('☒ Failed')
+def test_failure(nr: int):
+    print(f'☒ Failed: {nr}')
 
 
-for test in TESTS:
+for test_nr, test in enumerate(TESTS):
     log('####################')
     log(f"[TEST-INFO] TEST: '{test['name']}'")
 
@@ -143,7 +143,7 @@ for test in TESTS:
         # pylint: disable=W1116
         if not isinstance(e, test['exception']):
             log('[TEST-ERROR] Got unexpected error')
-            test_failure()
+            test_failure(test_nr)
             if LOG_VERBOSE:
                 raise
 
@@ -161,7 +161,7 @@ for test in TESTS:
             log(
                 f"[TEST-ERROR] Test-Result got unexpected status: '{attr}' - want '{want_value}' - got '{got_value}'"
             )
-            test_failure()
+            test_failure(test_nr)
             if LOG_VERBOSE:
                 sys_exit(1)
 
@@ -170,7 +170,7 @@ for test in TESTS:
             log(
                 f"[TEST-ERROR] Required output not found: '{test['in_stdout']}'"
             )
-            test_failure()
+            test_failure(test_nr)
             if LOG_VERBOSE:
                 sys_exit(1)
 
@@ -179,9 +179,9 @@ for test in TESTS:
             log(
                 f"[TEST-ERROR] Required error-output not found: '{test['in_stderr']}'"
             )
-            test_failure()
+            test_failure(test_nr)
             if LOG_VERBOSE:
                 sys_exit(1)
 
     log('[TEST-SUCCESS] Test finished successfully!')
-    test_success()
+    test_success(test_nr)
