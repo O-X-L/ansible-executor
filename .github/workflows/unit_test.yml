@@ -26,9 +26,10 @@ jobs:
       matrix:
         include:
           # see: https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix
-          - ansible_core_version: '2.18'
-          - ansible_core_version: '2.19'
-          - ansible_core_version: '2.20'
+          - python_version: '3.11'
+          - python_version: '3.12'
+          - python_version: '3.13'
+          - python_version: '3.14'
 
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -45,12 +46,12 @@ jobs:
       - name: Install python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: "${{ matrix.python_version }}"
 
       - name: Install dependencies
         run: |
           pip install -r requirements_unit_test.txt >/dev/null
-          pip install ansible-core==${{ matrix.ansible_core_version }}.*
+          pip install ansible-core  # is not executed 
 
       - name: Running Unit Tests
         run: |
