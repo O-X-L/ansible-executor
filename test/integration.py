@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from time import sleep
 from os import environ
 from pathlib import Path
 from sys import exit as sys_exit
@@ -19,7 +20,7 @@ TESTS = [
             'output_color': False,
         },
         'exception': None,
-        'result': {'failed': False},
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
     },
     {
         'name': 'Play1 - setting extra-vars',
@@ -30,7 +31,7 @@ TESTS = [
             'output_color': False,
         },
         'exception': None,
-        'result': {'failed': True},
+        'result': {'failed': True, 'finished': True, 'playbook_finished': True, 'timed_out': False},
     },
     {
         'name': 'Play1 - setting env-vars',
@@ -42,7 +43,7 @@ TESTS = [
             'output_color': False,
         },
         'exception': None,
-        'result': {'failed': False},
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
     },
     {
         'name': 'Play1 - output-color enabled',
@@ -52,8 +53,36 @@ TESTS = [
             'output_color': True,
         },
         'exception': None,
-        'result': {'failed': False},
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
         'in_stdout': '\u001b[0;32m',
+    },
+    {
+        'name': 'Play1 - user stops execution',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'extra_vars': {'test': 'run3'},  # sleeps some time so we can kill it
+            'output_color': False,
+        },
+        'exception': None,
+        'blocking': False,
+        'stop': True,
+        'result': {'failed': True, 'finished': True, 'playbook_finished': False, 'timed_out': False},
+        'in_stderr': 'User interrupted execution',
+    },
+    {
+        'name': 'Play1 - execution timed-out',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'extra_vars': {'test': 'run3'},  # sleeps some time so it can timeout
+            'timeout_sec_run': 2,
+            'output_color': False,
+        },
+        'exception': None,
+        'blocking': True,
+        'result': {'failed': True, 'finished': True, 'playbook_finished': False, 'timed_out': True},
+        'in_stderr': 'timed out after',
     },
 ]
 
@@ -83,7 +112,13 @@ for test in TESTS:
         e = Execution(c)
 
         log('[TEST-INFO] Run execution')
-        e.run()
+        e.run(blocking=test.get('blocking', True))
+
+        if test.get('stop', False):
+            sleep(1)
+            log('[TEST-INFO] Stopping execution')
+            e.stop()
+            sleep(2)
 
     except (ConfigError, SetupError, PreparationError, ExecutionError) as e:
         if test['exception'] is None:
@@ -120,6 +155,15 @@ for test in TESTS:
         if test['in_stdout'] not in e.status.process_result.stdout:
             log(
                 f"[TEST-ERROR] Required output not found: '{test['in_stdout']}'"
+            )
+            test_failure()
+            if LOG_VERBOSE:
+                sys_exit(1)
+
+    if 'in_stderr' in test:
+        if test['in_stderr'] not in e.status.process_result.stderr:
+            log(
+                f"[TEST-ERROR] Required error-output not found: '{test['in_stderr']}'"
             )
             test_failure()
             if LOG_VERBOSE:

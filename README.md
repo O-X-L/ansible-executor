@@ -32,6 +32,7 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
 ## Roadmap
 
 - [ ] Ansible Execution
+  - [x] Config Object & Validation incl. inline-docs
   - [ ] Engines
     - [x] Local Executor
     - [ ] Container Executor
@@ -40,8 +41,28 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
   - [ ] Functionality
     - [x] Playbook targeting local machine
     - [ ] Playbook targeting remote Linux server (SSH-Key, Connect-Pass, Become-Pass, Vault-Pass)
+      - [x] Pass secrets via one-time-read Pipes/FIFO (*in-memory - does not write to disk*)
     - [x] Stopping job
     - [x] Redirect output (stdout/stderr) to log-files
+- [ ] Tests
+  - [ ] Unit-Tests for all components (>85% coverage)
+    - [ ] Execution Config-Validation
+    - [ ]
+  - [ ] Integration-Tests for many practical use-cases
+    - [x] Simple execution targeting localhost
+    - [x] Passing extra-vars
+    - [x] Passing env-vars
+    - [x] Enabling output-colors
+    - [x] User stopping execution
+    - [x] Execution reached timeout
+    - [ ] Passing secrets
+      - [ ] As values
+      - [ ] As files
+    - [ ] SSH
+      - [ ] SSH-Key usage
+      - [ ] Known-Hosts file
+    - [ ] tbc...
+  - [ ] Integration-Tests also for containerized executor
 
 ----
 

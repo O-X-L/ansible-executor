@@ -361,6 +361,22 @@ class ExecutionConfig:
 
         self.validate()
 
+    def validate(self):
+        self._validate_playbook_dir()
+        self._validate_playbook_file()
+        self._validate_inventory_files()
+        self._validate_run_dir()
+        self._validate_ssh_known_hosts_file()
+        self._validate_verbosity()
+        self._validate_bools()
+        self._validate_dicts()
+        self._validate_lists()
+        self._validate_times()
+        self._validate_log_file_settings()
+        self._validate_cmd_args()
+
+        # todo: schema-validation of string-values
+
     @staticmethod
     def append_to_list(values: (list, None), to_append) -> list:
         if values is None:
@@ -532,22 +548,6 @@ class ExecutionConfig:
             return None
 
         return cmd_args
-
-    def validate(self):
-        self._validate_playbook_dir()
-        self._validate_playbook_file()
-        self._validate_inventory_files()
-        self._validate_run_dir()
-        self._validate_ssh_known_hosts_file()
-        self._validate_verbosity()
-        self._validate_bools()
-        self._validate_dicts()
-        self._validate_lists()
-        self._validate_times()
-        self._validate_log_file_settings()
-        self._validate_cmd_args()
-
-        # todo: schema-validation of string-values
 
     def _validate_playbook_dir(self):
         if str(self.playbook_dir).strip() == '':
