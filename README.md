@@ -46,11 +46,14 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
     - [x] Redirect output (stdout/stderr) to log-files
 - [ ] Tests
   - [ ] Unit-Tests for all components (>85% coverage)
-    - [ ] Execution Config-Validation
+    - [x] Execution Config-Validation
     - [ ] Execution
-    - [ ] Base-Executor
-    - [ ] Local Executor-Engine
-    - [ ] Containerized Executor-Engine
+      - [ ] Before
+        - [ ] Base-Executor
+        - [ ] Local Executor-Engine
+        - [ ] Containerized Executor-Engine
+      - [ ] After
+      - [ ] Execution-Status
   - [ ] Integration-Tests for many practical use-cases
     - [x] Simple execution targeting localhost
     - [x] Passing extra-vars
@@ -58,9 +61,11 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
     - [x] Enabling output-colors
     - [x] User stopping execution
     - [x] Execution reached timeout
-    - [ ] Passing secrets
-      - [ ] As values
-      - [ ] As files
+    - [ ] Passing secrets (as value & as file)
+      - [ ] SSH-Key
+      - [ ] Connect-Pass
+      - [ ] Become-Pass
+      - [x] Ansible-Vault
     - [ ] SSH
       - [ ] SSH-Key usage
       - [ ] Known-Hosts file

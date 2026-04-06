@@ -27,7 +27,7 @@ TESTS = [
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
-            'extra_vars': {'test': 'run2'},
+            'extra_vars': {'test': 'test2'},
             'output_color': False,
         },
         'exception': None,
@@ -38,8 +38,8 @@ TESTS = [
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
-            'extra_vars': {'test': 'run2'},
-            'env_vars': {'TEST1_VAR2': 'SomeRandomValue'},
+            'extra_vars': {'test': 'test2'},
+            'env_vars': {'TEST2_VAR': 'SomeRandomValue'},
             'output_color': False,
         },
         'exception': None,
@@ -61,7 +61,7 @@ TESTS = [
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
-            'extra_vars': {'test': 'run3'},  # sleeps some time so we can kill it
+            'extra_vars': {'test': 'test3'},  # sleeps some time so we can kill it
             'output_color': False,
         },
         'exception': None,
@@ -75,7 +75,7 @@ TESTS = [
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
-            'extra_vars': {'test': 'run3'},  # sleeps some time so it can timeout
+            'extra_vars': {'test': 'test3'},  # sleeps some time so it can timeout
             'timeout_sec_run': 2,
             'output_color': False,
         },
@@ -83,6 +83,20 @@ TESTS = [
         'blocking': True,
         'result': {'failed': True, 'finished': True, 'playbook_finished': False, 'timed_out': True},
         'in_stderr': 'timed out after',
+    },
+    {
+        'name': 'Play1 - ansible-vault encrypted secret',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'extra_vars': {'test': 'test5'},  # has a vault-secret configured
+            'vault_pass_value': 'SuperSecret!',
+            'output_color': False,
+        },
+        'exception': None,
+        'blocking': True,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_stdout': 'This is Test5',
     },
 ]
 
