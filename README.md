@@ -13,9 +13,11 @@
 [![Unit-Tests](https://github.com/O-X-L/ansible-executor/actions/workflows/unit_test.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-executor/actions/workflows/unit_test.yml)
 [![Integration-Tests](https://github.com/O-X-L/ansible-executor/actions/workflows/integration_test.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-executor/actions/workflows/integration_test.yml)
 
-**DISCLAIMER**: This is an **unofficial community project**! Do not confuse it with the vanilla [Ansible](https://ansible.com/) product!
+**DISCLAIMER**: This is an **unofficial community project**! Do not confuse it with the vanilla [Ansible/Ansible-Runner](https://ansible.com/) product!
 
 **WARNING**: This project is still in early development. DO NOT use it in production!
+
+----
 
 ## Scope
 
@@ -25,9 +27,19 @@ It will focus on using docker or podman to execute ansible in an isolated enviro
 
 The implementation will be opinionated and will have a 'narrow' interface.
 
-## Use-Cases
+### Motivation
 
-See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
+I was not 100% happy with the official [ansible-runner](https://github.com/ansible/ansible-runner) library.
+
+It provides a lot more functionality than we actually need (*only executing ansible-playbooks*) and thus has a lot more complexity added-on. This makes it also hard to troubleshoot.
+
+As I needed an alternative I wanted to provide it to the community to play with. (:
+
+I will try to create a transparent documentation and a lot of unit- & integration-tests!
+
+Feel free to give feedback as [GitHub issues](https://github.com/O-X-L/ansible-executor/issues) or [email](mailto://contact+ansibleexecutor@oxl.at).
+
+----
 
 ## Roadmap
 
@@ -73,6 +85,16 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
       - [ ] Known-Hosts file
     - [ ] tbc...
   - [ ] Integration-Tests also for containerized executor
+
+----
+
+## Install
+
+```
+pip install oxl-ansible-executor
+```
+
+See: [pypi.org/oxl-ansible-executor](https://pypi.org/project/oxl-ansible-executor/)
 
 ----
 
@@ -177,6 +199,12 @@ e.run(blocking=False)
 # you could 'tail -f' the log files
 e.stop()  # executor sends signals to subprocess running ansible
 ```
+
+----
+
+## Use-Cases
+
+See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
 
 ----
 
