@@ -47,7 +47,10 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
 - [ ] Tests
   - [ ] Unit-Tests for all components (>85% coverage)
     - [ ] Execution Config-Validation
-    - [ ]
+    - [ ] Execution
+    - [ ] Base-Executor
+    - [ ] Local Executor-Engine
+    - [ ] Containerized Executor-Engine
   - [ ] Integration-Tests for many practical use-cases
     - [x] Simple execution targeting localhost
     - [x] Passing extra-vars
