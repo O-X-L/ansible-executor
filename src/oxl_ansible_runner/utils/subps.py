@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 from io import TextIOWrapper
 from os import environ, getcwd
+from json import dumps as json_dumps
 
 from utils.debug import log
 
@@ -68,6 +69,13 @@ class ProcessResult:
         self._stdout += value
 
     @property
+    def stdout_lines(self) -> list[str]:
+        if self.stdout is None:
+            return []
+
+        return self.stdout.split('\n')
+
+    @property
     def stderr(self) -> (str, None):
         if self._stderr is None:
             if self.empty_none:
@@ -91,11 +99,35 @@ class ProcessResult:
         self._stderr += value
 
     @property
+    def stderr_lines(self) -> list[str]:
+        if self.stderr is None:
+            return []
+
+        return self.stderr.split('\n')
+
+    @property
     def failed(self) -> bool:
         if self.rc == -1:
             return False
 
         return self.rc != 0
+
+    def to_dict(self) -> dict:
+        return {
+            'failed': self.failed,
+            'rc': self.rc,
+            'pid': self.pid if self.pid != -1 else None,
+            'stdout': self.stdout,
+            'stderr': self.stderr,
+            'stdout_lines': self.stdout_lines,
+            'stderr_lines': self.stderr_lines,
+        }
+
+    def to_json(self) -> str:
+        return json_dumps(self.to_dict(), default=str, indent=2)
+
+    def __repr__(self) -> str:
+        return self.to_json()
 
 
 class Process:
@@ -108,34 +140,46 @@ class Process:
         self.env = self._prep_env(args)
         self.cwd = self._build_cwd(args.cwd)
         self.cmd = self._build_command(cmd)
-        self.p = None
 
+        self.p = None
         self._started = False
+        self._closed = False
         self._log_files_loaded = False
         self._pipe_stdout = None
         self._pipe_stderr = None
 
     @property
     def finished(self) -> bool:
+        if self._closed and self._result.rc != -1:
+            return True
+
         if self.p is None:
             return False
 
-        self.p.poll()
-        return self.p.returncode is not None
+        try:
+            self.p.poll()
+            return self.p.returncode is not None
+
+        except AttributeError:
+            # self.p got closed/nulled-out meanwhile
+            return self._closed and self._result.rc != -1
 
     @property
     def result(self) -> ProcessResult:
         if not self.finished:
             return self._result
 
-        if not self._result.process_error:
+        self._update_result()
+        return self._result
+
+    def _update_result(self):
+        if self._result.rc == -1:
             self._result.rc = self.p.returncode
 
         self._load_stdout_stderr_from_logfiles()
-        return self._result
 
     def wait_until_finished(self) -> ProcessResult:
-        if self.p is None:
+        if not self._started:
             self.start()
 
         try:
@@ -154,15 +198,8 @@ class Process:
                 self._result.stderr = b_stderr.decode('utf-8').strip()
 
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, subprocess.CalledProcessError,
-                OSError, IOError) as error:
-            self._result.process_error = True
-            stderr = str(error)
-            self._result.stderr_append(stderr)
-            self._result.rc = 1
-
-            if self.args.file_stderr is not None:
-                with open(self.args.file_stderr, 'a', encoding='utf-8') as f:
-                    f.write('\n' + stderr + '\n')
+                OSError, IOError, FileNotFoundError) as error:
+            self._log_process_error(error)
 
         return self.result
 
@@ -172,18 +209,26 @@ class Process:
 
         self._pipe_stdout = self._prep_output_pipe(self.args.file_stdout)
         self._pipe_stderr = self._prep_output_pipe(self.args.file_stderr)
-        # pylint: disable=R1732
-        self.p = subprocess.Popen(
-            self.cmd,
-            shell=self.args.shell,
-            stdout=self._pipe_stdout,
-            stderr=self._pipe_stderr,
-            stdin=subprocess.PIPE,
-            cwd=self.cwd,
-            env=self.env,
-        )
-        self._started = True
-        return self.p
+        try:
+            self._started = True
+
+            # pylint: disable=R1732
+            self.p = subprocess.Popen(
+                self.cmd,
+                shell=self.args.shell,
+                stdout=self._pipe_stdout,
+                stderr=self._pipe_stderr,
+                stdin=subprocess.PIPE,
+                cwd=self.cwd,
+                env=self.env,
+            )
+
+            return self.p
+
+        except (subprocess.SubprocessError, subprocess.CalledProcessError, OSError, IOError,
+                FileNotFoundError) as error:
+            self._log_process_error(error)
+            raise
 
     def send_signal(self, signal: int):
         if self.p is None:
@@ -198,12 +243,24 @@ class Process:
         self.close()
 
     def close(self):
-        del self.p
+        self._update_result()
+        self._closed = True
+        self.p = None
         if self._pipe_stdout:
             self._pipe_stdout.close()
 
         if self._pipe_stderr:
             self._pipe_stderr.close()
+
+    def _log_process_error(self, error):
+        self._result.process_error = True
+        stderr = str(error)
+        self._result.stderr_append(stderr)
+        self._result.rc = 1
+
+        if self.args.file_stderr is not None:
+            with open(self.args.file_stderr, 'a', encoding='utf-8') as f:
+                f.write('\n' + stderr + '\n')
 
     def _load_stdout_stderr_from_logfiles(self):
         if self._log_files_loaded:

@@ -1,6 +1,6 @@
 ---
 
-name: Unit-Tests
+name: Integration Tests
 
 on:
   workflow_dispatch:
@@ -9,16 +9,14 @@ on:
     paths:
       - '**.py'
       - 'requirements.txt'
-      - 'requirements_unit_test.txt'
-      - '.github/workflows/unit_test.yml'
+      - '.github/workflows/integration_test.yml'
 
   pull_request:
     branches: [latest]
     paths:
       - '**.py'
       - 'requirements.txt'
-      - 'requirements_unit_test.txt'
-      - '.github/workflows/unit_test.yml'
+      - '.github/workflows/integration_test.yml'
 
 jobs:
   test:
@@ -49,13 +47,27 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements_unit_test.txt >/dev/null
+          pip install -r requirements_build.txt >/dev/null
+          apt install python3-virtualenv python3-pip
+
+      - name: Preparing test-env
+        run: |
+          echo 'CREATING TMP VENV'
+          tmp_venv="$AR_VENV"
+          python3 -m virtualenv "$tmp_venv" >/dev/null
+          source "${tmp_venv}/bin/activate"
+
+          echo 'INSTALLING DEPENDENCIES'
           pip install ansible-core==${{ matrix.ansible_core_version }}.*
 
-      - name: Running Unit Tests
+          echo 'INSTALLING MODULE'
+          python3 -m pip install -e "$GITHUB_WORKSPACE" >/dev/null
+        env:
+          AR_VENV: '/tmp/ar_venv'
+
+      - name: Running Integration Tests
         run: |
-          pytest --version
-          python3 -m pytest
+          python3 ${GITHUB_WORKSPACE}/test/integration.py
         env:
           PYTHONUNBUFFERED: 1
           AR_TEST: 1

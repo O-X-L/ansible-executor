@@ -6,7 +6,7 @@ class SetupError(ConfigError):
     pass
 
 
-class PreparationError(ConfigError):
+class PreparationError(EnvironmentError):
     pass
 
 

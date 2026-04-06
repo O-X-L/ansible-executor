@@ -2,6 +2,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 
 from utils.debug import log
+from utils.subps import ProcessResult
 from runner_config import ExecutionConfig
 
 
@@ -18,8 +19,10 @@ class ExecutorBase(ABC):
 
         self.process_thread = []
         self.process = None
-        self.result = None
+        self.result: ProcessResult = None
         self.signal_stop = False
+        self.time_finish: int = -1
+        self.command: list[str] = None
 
         self._engine_init(
             pipe_ssh_key=pipe_ssh_key,
@@ -40,10 +43,9 @@ class ExecutorBase(ABC):
     def execute(self):
         log('Executing ansible-playbook')
         cmd = self.generate_engine_command()
+        self.command = cmd
         log(f'Command: {cmd}')
-        log(f'Log files: {self.config.log_stdout_file} | {self.config.log_stderr_file}')
 
-        # result = self._execute_command(cmd)
         self._execute_command(cmd)
         # todo: subprocess execution
         # todo: process-monitor loop
@@ -51,7 +53,7 @@ class ExecutorBase(ABC):
         # todo: add status-infos as attributes (for exec-status)
 
     @abstractmethod
-    def _execute_command(self, cmd: list[str]) -> dict:
+    def _execute_command(self, cmd: list[str]) -> ProcessResult:
         raise NotImplementedError('Command-execution has to be implemented!')
 
     @abstractmethod

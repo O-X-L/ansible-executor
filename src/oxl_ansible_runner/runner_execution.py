@@ -13,34 +13,117 @@ from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, DEFAULT_LOG
 from runner_executor_local import ExecutorBase, ExecutorLocal
 from runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman
 from utils.debug import log
+from utils.subps import ProcessResult
 from utils.util import get_random_str
 from utils.filesystem import write_file_with_mode, overwrite_and_delete_file
 
 
 class ExecutionStatus:
-    def __init__(self):
-        self.finished = False
-        self.failed = False
+    def __init__(self, config: ExecutionConfig):
+        self._config: ExecutionConfig = config
         self.time_start = int(time())
-        self.time_finish: int = 0
+        self._executor: ExecutorBase = None
+
+    # todo: use properties to add executor-infos to execution-status
+    @property
+    def executor(self) -> None:
+        return None
+
+    @executor.setter
+    def executor(self, executor: ExecutorBase):
+        self._executor = executor
+
+    @property
+    def time_finish(self) -> int:
+        return self._executor.time_finish
+
+    @property
+    def process_command(self) -> (None, list[str]):
+        if self._executor is None:
+            return None
+
+        return self._executor.command
+
+    @property
+    def process_rc(self) -> int:
+        if self._executor is None or self._executor.result is None:
+            return -1
+
+        return self._executor.result.rc
+
+    @property
+    def process_result(self) -> (ProcessResult, None):
+        if self._executor is None or self._executor.result is None:
+            return None
+
+        return self._executor.result
+
+    @property
+    def finished(self) -> bool:
+        return self.process_rc != -1
+
+    @property
+    def failed(self) -> bool:
+        if not self.finished:
+            return False
+
+        if self.process_result is None:
+            # bug? should not happen
+            return True
+
+        return self.process_rc != 0
+
+    @property
+    def playbook_finished(self) -> bool:
+        max_lines_scan = 100
+        if not self.finished or self.process_result is None:
+            return False
+
+        stdout_reversed = self.process_result.stdout_lines.copy()
+        stdout_reversed.reverse()
+        for i, line in enumerate(stdout_reversed):
+            if i > max_lines_scan:
+                break
+
+            if line.startswith('PLAY RECAP'):
+                return True
+
+        return False
 
     def time_duration_sec(self) -> int:
-        if self.time_finish == 0:
+        if self.time_finish == -1:
             return int(time()) - self.time_start
 
         return self.time_finish - self.time_start
 
+    @property
+    def log_stdout_file(self) -> (Path, None):
+        return self._config.log_stdout_file
+
+    @property
+    def log_stderr_file(self) -> (Path, None):
+        return self._config.log_stderr_file
+
     def to_dict(self) -> dict:
         return {
             'finished': self.finished,
+            'playbook_finished': self.playbook_finished,
             'failed': self.failed,
             'time_start': self.time_start,
             'time_finish': self.time_finish,
             'time_duration_sec': self.time_duration_sec(),
+            'log_stdout_file': str(self.log_stdout_file),
+            'log_stderr_file': str(self.log_stderr_file),
+            'process_command': self.process_command,
+            'process_rc': self.process_rc,
+            'process_result': self.process_result.to_dict(),
         }
 
+    def to_json(self) -> str:
+        return json_dumps(self.to_dict(), default=str, indent=2)
+
     def __repr__(self) -> str:
-        return json_dumps(self.to_dict())
+        return self.to_json()
 
 
 def _write_secret_to_pipe(file: str, secret: str):
@@ -55,12 +138,16 @@ class Execution:
     def __init__(self, config: ExecutionConfig):
         self.config = deepcopy(config)  # make sure the source-config is re-usable and not modified
 
-        self.status = ExecutionStatus()
+        self._status = ExecutionStatus(self.config)
         self.__started = False
         self._executor: ExecutorBase = None
 
         self.__cleaned_up = False
         self._prepare()
+
+    @property
+    def status(self) -> ExecutionStatus:
+        return self._status
 
     def stop_execution(self):
         self._executor.signal_stop = True
@@ -119,6 +206,7 @@ class Execution:
             pipe_become_pass=self.__secret_pipe_become_pass,
             pipe_vault_pass=self.__secret_pipe_vault_pass,
         )
+        self._status.executor = self._executor
         log(f"Using executor: {name}")
 
     def _prepare_executor(self):
@@ -126,12 +214,8 @@ class Execution:
 
     def _execute(self):
         self._executor.execute()
-        # todo: update execution-status
 
     def _after(self):
-        self.status.time_finish = int(time())
-        self.status.finished = True
-
         self.cleanup()
 
     def _create_secret_pipes(self):

@@ -11,6 +11,7 @@
 [![Check Docs](https://github.com/O-X-L/ansible-runner/actions/workflows/check_docs.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-runner/actions/workflows/check_docs.yml)
 [![Lint](https://github.com/O-X-L/ansible-runner/actions/workflows/lint.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-runner/actions/workflows/lint.yml)
 [![Unit-Tests](https://github.com/O-X-L/ansible-runner/actions/workflows/unit_test.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-runner/actions/workflows/unit_test.yml)
+[![Integration-Tests](https://github.com/O-X-L/ansible-runner/actions/workflows/unit_test.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-runner/actions/workflows/integration_test.yml)
 
 **DISCLAIMER**: This is an **unofficial community project**! Do not confuse it with the vanilla [Ansible](https://ansible.com/) product!
 
@@ -56,7 +57,57 @@ c = ExecutionConfig(
 )
 e = Execution(c)
 
-e.run()
+e.run()  # blocks until execution finished
+
+print(e.status)
+# {
+#   "finished": true,
+#   "playbook_finished": true,
+#   "failed": false,
+#   "time_start": 1775467217,
+#   "time_finish": 1775467218,
+#   "time_duration_sec": 1,
+#   "log_stdout_file": "/home/abc/.local/share/oxl-ansible-runner/ansible_stdout_1775467217_qroNP.log",
+#   "log_stderr_file": "/home/abc/.local/share/oxl-ansible-runner/ansible_stderr_1775467217_qroNP.log",
+#   "process_command": [
+#     "/home/abc/.venv/bin/ansible-playbook",
+#     "play1.yml"
+#   ],
+#   "process_rc": 0,
+#   "process_result": {
+#     "failed": false,
+#     "rc": 0,
+#     "pid": null,
+#     "stdout": "PLAY [localhost] ***************************************************************\n\nTASK [test1 : TEST 1 | Basic] **************************************************\nok: [localhost] => {\n    \"msg\": \"TEST 1: 'NOT SET'\"\n}\n\nTASK [test1 : TEST 1 | Checking environmental variable] ************************\nskipping: [localhost]\n\nTASK [test1 : TEST 1 | Showing environmental variable] *************************\nskipping: [localhost]\n\nTASK [test1 : TEST 1 | Sleeping] ***********************************************\nskipping: [localhost]\n\nTASK [test1 : TEST 1 | Fail] ***************************************************\nskipping: [localhost]\n\nPLAY RECAP *********************************************************************\nlocalhost                  : ok=1    changed=0    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0",
+#     "stderr": "[WARNING]: No inventory was parsed, only implicit localhost is available",
+#     "stdout_lines": [
+#       "PLAY [localhost] ***************************************************************",
+#       "",
+#       "TASK [test1 : TEST 1 | Basic] **************************************************",
+#       "ok: [localhost] => {",
+#       "    \"msg\": \"TEST 1: 'NOT SET'\"",
+#       "}",
+#       "",
+#       "TASK [test1 : TEST 1 | Checking environmental variable] ************************",
+#       "skipping: [localhost]",
+#       "",
+#       "TASK [test1 : TEST 1 | Showing environmental variable] *************************",
+#       "skipping: [localhost]",
+#       "",
+#       "TASK [test1 : TEST 1 | Sleeping] ***********************************************",
+#       "skipping: [localhost]",
+#       "",
+#       "TASK [test1 : TEST 1 | Fail] ***************************************************",
+#       "skipping: [localhost]",
+#       "",
+#       "PLAY RECAP *********************************************************************",
+#       "localhost                  : ok=1    changed=0    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0"
+#     ],
+#     "stderr_lines": [
+#       "[WARNING]: No inventory was parsed, only implicit localhost is available"
+#     ]
+#   }
+# }
 ```
 
 ----
@@ -69,7 +120,8 @@ We are happy to see contributions. (:
 * Create feature-requests
 * Provide PR's for:
   * more Unit-Tests
-  * fixing errors
+  * more Integration-Tests
+  * fixing bugs/errors
   * enhancing the input-validation
   * ...
 

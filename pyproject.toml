@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oxl-ansible-runner"
+authors = [
+    {name = "Pascal Rath", email = "rath@oxl.at"},
+]
+description = "Basic Runner/Executor for Ansible-Playbooks"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["ansible", "runner", "automation", "iac"]
+license = {file = "LICENSE.txt"}
+classifiers = [
+    'Programming Language :: Python :: 3',
+    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+    'Framework :: Ansible',
+]
+dynamic = ["dependencies", "version"]
+
+[project.urls]
+Homepage = "https://github.com/O-X-L/ansible-runner"
+Documentation = "https://ansible-runner.OXL.app/"
+Repository = "https://github.com/O-X-L/ansible-runner.git"
+Issues = "https://github.com/O-X-L/ansible-runner/issues"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+version = {file = ["VERSION"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["*_pytest.py"]
+
+[tool.setuptools.package-data]
+"*" = ["Dockerfile*"]

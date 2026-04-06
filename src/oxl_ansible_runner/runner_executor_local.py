@@ -1,5 +1,6 @@
-from time import sleep
 from pathlib import Path
+from copy import deepcopy
+from time import sleep, time
 from threading import Thread
 from shutil import which as find_executable
 from signal import SIGINT, SIGKILL, SIGTERM
@@ -50,7 +51,8 @@ class ExecutorLocal(ExecutorBase):
         pass
 
     def _wait_for_process_to_finish(self):
-        self.result = self.process.wait_until_finished()
+        self.process.wait_until_finished()
+        self._set_process_result()
         self.process.close()
 
     def _execute_command(self, cmd: list[str]):
@@ -70,9 +72,20 @@ class ExecutorLocal(ExecutorBase):
 
         self._process_control_loop()
 
+    def _set_process_result(self):
+        if self.result is None:
+            self.result = deepcopy(self.process.result)
+
+        if self.time_finish == -1:
+            self.time_finish = int(time())
+
     def _process_control_loop(self):
         while self.result is None:
             sleep(0.1)
+
+            if self.process.result.rc != -1 and self.result is None:
+                self._set_process_result()
+                break
 
             if self.signal_stop:
                 log('Stopping execution')
@@ -86,3 +99,5 @@ class ExecutorLocal(ExecutorBase):
                     self.process.send_signal(SIGTERM)
 
                 break
+
+        self._set_process_result()
