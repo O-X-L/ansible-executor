@@ -11,7 +11,7 @@
 [![Check Docs](https://github.com/O-X-L/ansible-executor/actions/workflows/check_docs.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-executor/actions/workflows/check_docs.yml)
 [![Lint](https://github.com/O-X-L/ansible-executor/actions/workflows/lint.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-executor/actions/workflows/lint.yml)
 [![Unit-Tests](https://github.com/O-X-L/ansible-executor/actions/workflows/unit_test.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-executor/actions/workflows/unit_test.yml)
-[![Integration-Tests](https://github.com/O-X-L/ansible-executor/actions/workflows/unit_test.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-executor/actions/workflows/integration_test.yml)
+[![Integration-Tests](https://github.com/O-X-L/ansible-executor/actions/workflows/integration_test.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-executor/actions/workflows/integration_test.yml)
 
 **DISCLAIMER**: This is an **unofficial community project**! Do not confuse it with the vanilla [Ansible](https://ansible.com/) product!
 
