@@ -51,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements_unit_test.txt >/dev/null
-          pip install ansible-core  # is not executed 
+          pip install ansible-core  # is not executed
 
       - name: Running Unit Tests
         run: |
