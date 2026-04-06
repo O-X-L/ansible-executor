@@ -127,7 +127,7 @@ print(e.status)
 #     "ssh-agent",
 #     "sh",
 #     "-c",
-#     "ssh-add /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw && /home/demo/code/ansible-executor/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --key-file /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw --become-pass-file /tmp/ar_znjp4bih/.SHVTpOYOH93aaZBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwkiXZ7YrpEvGY8BnyF2 syslog.yml"
+#     "ssh-add /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --key-file /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw --become-pass-file /tmp/ar_znjp4bih/.SHVTpOYOH93aaZBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwkiXZ7YrpEvGY8BnyF2 syslog.yml"
 #   ],
 #   "process_rc": 0,
 #   "process_result": {
@@ -193,6 +193,15 @@ We are happy to see contributions. (:
   * enhancing the input-validation
   * ...
 
+----
+
+## Security Considerations
+
+* Secrets are passed to Ansible via [one-time-readable FIFO/Pipes](https://github.com/O-X-L/ansible-executor/blob/latest/src/oxl_ansible_executor/runner_execution.py#L164)
+* SSH-agent is used to pass SSH-keys to Ansible
+* Files are created with an explicit `0600` file-mode
+* By default, the temporary runtime-directory is removed after the execution has finished (*only log-files remain - see example above*)
+* tbc
 
 ----
 
