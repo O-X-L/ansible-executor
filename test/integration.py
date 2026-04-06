@@ -16,6 +16,7 @@ TESTS = [
         'config': {
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
+            'output_color': False,
         },
         'exception': None,
         'result': {'failed': False},
@@ -26,6 +27,7 @@ TESTS = [
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
             'extra_vars': {'test': 'run2'},
+            'output_color': False,
         },
         'exception': None,
         'result': {'failed': True},
@@ -37,9 +39,21 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'extra_vars': {'test': 'run2'},
             'env_vars': {'TEST1_VAR2': 'SomeRandomValue'},
+            'output_color': False,
         },
         'exception': None,
         'result': {'failed': False},
+    },
+    {
+        'name': 'Play1 - output-color enabled',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': True,
+        },
+        'exception': None,
+        'result': {'failed': False},
+        'in_stdout': '\u001b[0;32m',
     },
 ]
 
@@ -97,6 +111,15 @@ for test in TESTS:
         if got_value != want_value:
             log(
                 f"[TEST-ERROR] Test-Result got unexpected status: '{attr}' - want '{want_value}' - got '{got_value}'"
+            )
+            test_failure()
+            if LOG_VERBOSE:
+                sys_exit(1)
+
+    if 'in_stdout' in test:
+        if test['in_stdout'] not in e.status.process_result.stdout:
+            log(
+                f"[TEST-ERROR] Required output not found: '{test['in_stdout']}'"
             )
             test_failure()
             if LOG_VERBOSE:
