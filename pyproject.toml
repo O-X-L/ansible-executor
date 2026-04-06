@@ -3,7 +3,7 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oxl-ansible-runner"
+name = "oxl-ansible-executor"
 authors = [
     {name = "Pascal Rath", email = "rath@oxl.at"},
 ]
@@ -20,10 +20,10 @@ classifiers = [
 dynamic = ["dependencies", "version"]
 
 [project.urls]
-Homepage = "https://github.com/O-X-L/ansible-runner"
-Documentation = "https://ansible-runner.OXL.app/"
-Repository = "https://github.com/O-X-L/ansible-runner.git"
-Issues = "https://github.com/O-X-L/ansible-runner/issues"
+Homepage = "https://github.com/O-X-L/ansible-executor"
+Documentation = "https://ansible-executor.OXL.app/"
+Repository = "https://github.com/O-X-L/ansible-executor.git"
+Issues = "https://github.com/O-X-L/ansible-executor/issues"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

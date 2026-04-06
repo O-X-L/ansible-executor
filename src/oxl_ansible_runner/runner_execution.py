@@ -90,6 +90,21 @@ class ExecutionStatus:
 
         return False
 
+    @property
+    def stats(self) -> dict:
+        # todo: parse 'PLAY RECAP' or do it like the official ansible-executor and parse the streamed output?
+        return {}
+
+    @property
+    def stats_by_category(self) -> dict:
+        # todo: group by categories - unreachable, skipped, ok, failed, ignored, rescued, changed
+        return self.stats
+
+    @property
+    def stats_by_hosts(self) -> dict:
+        # todo: group by hosts
+        return self.stats
+
     def time_duration_sec(self) -> int:
         if self.time_finish == -1:
             return int(time()) - self.time_start

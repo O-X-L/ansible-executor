@@ -11,7 +11,7 @@ VERSION
 # build
 dist/*.whl
 dist/*.tar.gz
-oxl_ansible_runner.egg-info/
+oxl_ansible_executor.egg-info/
 docs/build/
 docs/source/_static/img/*.png
 docs/source/_static/img/*.jpg

@@ -3,7 +3,7 @@
 from pathlib import Path
 from sys import exit as sys_exit
 
-from oxl_ansible_runner import Execution, ExecutionConfig, \
+from oxl_ansible_executor import Execution, ExecutionConfig, \
     ConfigError, SetupError, PreparationError, ExecutionError
 
 PATH_TESTDATA = Path(__file__).parent.parent / 'testdata'

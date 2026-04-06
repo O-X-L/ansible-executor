@@ -105,7 +105,7 @@ class AnsibleCommand:
         return args
 
     def generate(self) -> list[str]:
-        # see also: official ansible-runner "ansible_runner.RunnerConfig.generate_ansible_command"
+        # see also: official ansible-executor "ansible_runner.RunnerConfig.generate_ansible_command"
         cmd = ['ansible-playbook']
 
         cmd.extend(self._generate_args_basic())

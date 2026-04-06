@@ -21,8 +21,8 @@ source_suffix = {
     # '.md': 'markdown',
 }
 html_theme_options = {
-    "site_url": "https://ansible-runner.oxl.app",
-    "repo_url": "https://github.com/O-X-L/ansible-runner",
+    "site_url": "https://ansible-executor.oxl.app",
+    "repo_url": "https://github.com/O-X-L/ansible-executor",
     "repo_name": "Ansible Runner minimal",
     "globaltoc_collapse": True,
     "features": [

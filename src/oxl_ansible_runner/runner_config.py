@@ -181,7 +181,7 @@ class ExecutionConfig:
             If you require additional dependencies to be installed, you should use your own.
             You can also use images that are only available locally on your docker-engine server. (built manually)
 
-            Dockerfile: https://github.com/O-X-L/ansible-runner/blob/latest/docker/Dockerfile_executor
+            Dockerfile: https://github.com/O-X-L/ansible-executor/blob/latest/docker/Dockerfile_executor
 
         timeout_sec_run:
             Maximum time in seconds that an ansible-playbook execution is allowed to run.

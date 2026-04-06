@@ -11,10 +11,10 @@ body:
       value: |
         Please make sure to go through these steps **before opening an issue**:
 
-        - [ ] Read the documentation: [Docs](https://ansible-runner.OXL.app/)
+        - [ ] Read the documentation: [Docs](https://ansible-executor.OXL.app/)
 
-        - [ ] Check if there are existing [issues](https://github.com/O-X-L/ansible-runner/issues)
-        or [discussions](https://github.com/O-X-L/ansible-runner/discussions) regarding your topic
+        - [ ] Check if there are existing [issues](https://github.com/O-X-L/ansible-executor/issues)
+        or [discussions](https://github.com/O-X-L/ansible-executor/discussions) regarding your topic
 
   - type: textarea
     id: versions
