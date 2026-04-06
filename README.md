@@ -40,7 +40,7 @@ See: Our simple [Ansible WebUI](https://github.com/O-X-L/ansible-webui)
   - [ ] Functionality
     - [x] Playbook targeting local machine
     - [ ] Playbook targeting remote Linux server (SSH-Key, Connect-Pass, Become-Pass, Vault-Pass)
-    - [ ] Stopping job
+    - [x] Stopping job
     - [x] Redirect output (stdout/stderr) to log-files
 
 ----
@@ -57,7 +57,7 @@ c = ExecutionConfig(
 )
 e = Execution(c)
 
-e.run()  # blocks until execution finished
+e.run(blocking=True)
 
 print(e.status)
 # {
@@ -108,6 +108,11 @@ print(e.status)
 #     ]
 #   }
 # }
+
+# to stop a running execution
+e = Execution(c)
+e.run(blocking=False)
+e.stop()  # executor sends signals to subprocess running ansible
 ```
 
 ----

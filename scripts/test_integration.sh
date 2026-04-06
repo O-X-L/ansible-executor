@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [ -z "$AR_TEST_VERBOSE" ]
+then
+  AR_TEST_VERBOSE='1'
+fi
+
 set -euo pipefail
 
 ANSIBLE_CORE_VERSION='2.18'
@@ -14,7 +19,7 @@ python3 -m virtualenv "$tmp_venv" >/dev/null
 source "${tmp_venv}/bin/activate"
 
 echo '### INSTALLING DEPENDENCIES ###'
-pip install "ansible-core==${ANSIBLE_CORE_VERSION}.*"
+pip install "ansible-core==${ANSIBLE_CORE_VERSION}.*" >/dev/null
 
 echo '### INSTALLING MODULE ###'
 python3 -m pip install -e "$PATH_REPO" >/dev/null

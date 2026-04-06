@@ -101,7 +101,8 @@ class ExecutorContainer(ExecutorBase):
         if image_query.stdout is None:
             raise ExecutionError(msg)
 
-        log(msg)
+        if not self.config.silent:
+            log(msg)
 
     def generate_ansible_command(self) -> list[str]:
         return self._ansible_command.generate()

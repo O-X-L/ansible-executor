@@ -72,3 +72,4 @@ jobs:
           PYTHONUNBUFFERED: 1
           AR_TEST: 1
           AR_VENV: '/tmp/ar_venv'
+          AR_TEST_VERBOSE: 0

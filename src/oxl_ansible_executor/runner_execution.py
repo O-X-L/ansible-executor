@@ -1,9 +1,9 @@
 import os
-from time import time
 from pathlib import Path
 from copy import deepcopy
 from threading import Thread
 from tempfile import mkdtemp
+from time import time, sleep
 from shutil import chown, rmtree
 from json import dumps as json_dumps
 
@@ -97,7 +97,7 @@ class ExecutionStatus:
 
     @property
     def stats_by_category(self) -> dict:
-        # todo: group by categories - unreachable, skipped, ok, failed, ignored, rescued, changed
+        # todo: group by categories - ok, changed, unreachable, failed, skipped, rescued, ignored
         return self.stats
 
     @property
@@ -134,11 +134,16 @@ class ExecutionStatus:
             'process_result': self.process_result.to_dict(),
         }
 
-    def to_json(self) -> str:
-        return json_dumps(self.to_dict(), default=str, indent=2)
+    # pylint: disable=R0801
+    def to_json(self, pretty: bool = False) -> str:
+        indent = 0
+        if pretty:
+            indent = 2
+
+        return json_dumps(self.to_dict(), default=str, indent=indent)
 
     def __repr__(self) -> str:
-        return self.to_json()
+        return self.to_json(pretty=True)
 
 
 def _write_secret_to_pipe(file: str, secret: str):
@@ -159,12 +164,14 @@ class Execution:
 
         self.__cleaned_up = False
         self._prepare()
+        self._execution_thread: Thread = None
+        self._cleanup_thread: Thread = None
 
     @property
     def status(self) -> ExecutionStatus:
         return self._status
 
-    def stop_execution(self):
+    def stop(self):
         self._executor.signal_stop = True
 
     def _prepare(self):
@@ -181,7 +188,7 @@ class Execution:
         self._secret_pipe_threads = []
         self._ssh_known_hosts_file = self._path_run / f'.{get_random_str(20)}'
 
-    def run(self) -> ExecutionStatus:
+    def run(self, blocking: bool = True) -> (None, ExecutionStatus):
         self.config.validate()
 
         if self.__started:
@@ -190,10 +197,13 @@ class Execution:
         self.__started = True
 
         self._before()
-        self._execute()
-        self._after()
+        if blocking:
+            self._execute_blocking()
+            self._after()
+            return self.status
 
-        return self.status
+        self._execute_non_blocking()
+        return None
 
     def _before(self):
         self._copy_ssh_known_hosts_file()
@@ -222,20 +232,35 @@ class Execution:
             pipe_vault_pass=self.__secret_pipe_vault_pass,
         )
         self._status.executor = self._executor
-        log(f"Using executor: {name}")
+        if not self.config.silent:
+            log(f"Using executor: {name}")
 
     def _prepare_executor(self):
         self._executor.prepare_engine()
 
-    def _execute(self):
+    def _execute_blocking(self):
         self._executor.execute()
+
+    def _execute_non_blocking(self):
+        self._execution_thread = Thread(target=self._execute_blocking)
+        self._execution_thread.start()
+        self._cleanup_thread = Thread(target=self._wait_for_after)
+        self._cleanup_thread.start()
+
+    def _wait_for_after(self):
+        while not self.status.finished:  # todo: add timeout
+            sleep(0.1)
+
+        self._after()
 
     def _after(self):
         self.cleanup()
 
     def _create_secret_pipes(self):
         # pylint: disable=W0212
-        log('Creating secret-pipes')
+        if not self.config.silent:
+            log('Creating secret-pipes')
+
         self._create_secret_pipe(
             secret=self.config._ssh_key,
             file=self.__secret_pipe_ssh_key,
@@ -269,7 +294,9 @@ class Execution:
         self._secret_pipe_threads.append(t)
 
     def _create_log_files(self):
-        log('Creating log-files')
+        if not self.config.silent:
+            log('Creating log-files')
+
         if not DEFAULT_LOG_DIR.is_dir():
             DEFAULT_LOG_DIR.mkdir(parents=True)
 
@@ -300,7 +327,9 @@ class Execution:
         if self.config.ssh_known_hosts_file is None:
             return
 
-        log('Copying SSH-known-hosts file')
+        if not self.config.silent:
+            log('Copying SSH-known-hosts file')
+
         with open(self.config.ssh_known_hosts_file, 'r', encoding='utf-8') as f:
             ssh_known_hosts = f.read()
 

@@ -4,8 +4,6 @@ from io import TextIOWrapper
 from os import environ, getcwd
 from json import dumps as json_dumps
 
-from utils.debug import log
-
 
 # pylint: disable=R0913,R0917
 class ProcessArgs:
@@ -123,11 +121,16 @@ class ProcessResult:
             'stderr_lines': self.stderr_lines,
         }
 
-    def to_json(self) -> str:
-        return json_dumps(self.to_dict(), default=str, indent=2)
+    # pylint: disable=R0801
+    def to_json(self, pretty: bool = False) -> str:
+        indent = 0
+        if pretty:
+            indent = 2
+
+        return json_dumps(self.to_dict(), default=str, indent=indent)
 
     def __repr__(self) -> str:
-        return self.to_json()
+        return self.to_json(pretty=True)
 
 
 class Process:
@@ -303,7 +306,6 @@ class Process:
         elif not isinstance(cmd, list):
             cmd = cmd.split(' ')
 
-        log(f"Executing command: '{cmd_str}'")
         return cmd
 
     @staticmethod
@@ -324,8 +326,6 @@ class Process:
         for k in env_remove:
             if k in env:
                 env.pop(k)
-
-        env['ANSIBLE_FORCE_COLOR'] = '1'
 
         return env
 

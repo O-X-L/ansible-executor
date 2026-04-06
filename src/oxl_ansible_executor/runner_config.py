@@ -156,12 +156,18 @@ class ExecutionConfig:
             Can be used to increase the amount of context-information ansible shows in its output.
             Integer between 0-6 or CLI-like string 'v-vvvvvv'
 
+        output_color:
+            Whether the ansible-output should be colored.
+
         ssh_known_hosts_file:
             Path to an existing text-file that contains a known-hosts 'public-key-list' of SSH-servers.
             Using such a file is much safer than setting the ANSIBLE_HOST_KEY_CHECKING env-var!
             Security warning: Make sure the file-mode is restrictive!
 
         ### RUNNER-SPECIFIC
+
+        silent:
+            Whether the executor should omit all output to stdout.
 
         containerized:
             Whether to execute ansible inside a container.
@@ -249,9 +255,11 @@ class ExecutionConfig:
             vault_id: (str, list[str]) = None,
 
             verbosity: (str, int) = None,
+            output_color: bool = True,
 
             ssh_known_hosts_file: (str, Path) = None,
 
+            silent: bool = False,
             containerized: bool = False,
             container_engine: str = None,
             container_image: str = None,
@@ -307,9 +315,11 @@ class ExecutionConfig:
         self.vault_id: (list[str], None) = self._build_list(vault_id)
 
         self.verbosity: (str, int, None) = verbosity
+        self.output_color: bool = output_color
 
         self.ssh_known_hosts_file: (str, Path, None) = ssh_known_hosts_file
 
+        self.silent: bool = silent
         self.containerized: bool = containerized
         self.container_engine: str = self._build_container_engine(
             containerized=containerized,
@@ -331,6 +341,22 @@ class ExecutionConfig:
         )
 
         self.validate()
+
+    @staticmethod
+    def append_to_list(values: (list, None), to_append) -> list:
+        if values is None:
+            values = []
+
+        values.append(to_append)
+        return values
+
+    @staticmethod
+    def add_to_dict(values: (dict, None), key: str, value: str) -> dict:
+        if values is None:
+            values = {}
+
+        values[key] = value
+        return values
 
     def _build_playbook_file(self, playbook_file: (str, Path, None)) -> (Path, None):
         if playbook_file is None:
@@ -516,7 +542,7 @@ class ExecutionConfig:
         if not self.playbook_dir.is_dir():
             raise SetupError(f"Provided 'playbook_dir' should be an existing directory! ({self.playbook_dir})")
 
-        if not str(self.playbook_dir).startswith('/'):
+        if not str(self.playbook_dir).startswith('/') and not self.silent:
             log("It is recommended to use absolute paths for 'playbook_dir'!")
 
     def _validate_playbook_file(self):
@@ -567,7 +593,7 @@ class ExecutionConfig:
         if not self.run_dir.is_dir():
             raise SetupError(f"Provided 'run_dir' should be an existing directory! ({self.run_dir})")
 
-        if not str(self.run_dir).startswith('/'):
+        if not str(self.run_dir).startswith('/') and not self.silent:
             log("It is recommended to use absolute paths for 'run_dir'!")
 
     def _validate_ssh_known_hosts_file(self):
@@ -614,7 +640,7 @@ class ExecutionConfig:
             raise ConfigError(f"Got bad type for '{which_var}' : {type(path)} (should be str or Path)")
 
     def _validate_bools(self):
-        for attr in ['mode_check', 'mode_diff', 'containerized']:
+        for attr in ['mode_check', 'mode_diff', 'containerized', 'output_color', 'silent']:
             value = getattr(self, attr)
             if not isinstance(value, bool):
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be bool)")
@@ -648,7 +674,7 @@ class ExecutionConfig:
                 f"(should be one of: 0o600 0o640 0o660 0o644 0o664)",
             )
 
-        if self.log_file_mode in [0o644, 0o664]:
+        if self.log_file_mode in [0o644, 0o664] and not self.silent:
             log(
                 "Provided 'log_file_mode' allows 'other' users to read the logs - this might be a security issue! "
                 "Maybe utilize 'log_file_owner_group' instead?",

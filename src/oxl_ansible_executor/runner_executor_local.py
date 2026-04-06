@@ -80,7 +80,7 @@ class ExecutorLocal(ExecutorBase):
             self.time_finish = int(time())
 
     def _process_control_loop(self):
-        while self.result is None:
+        while self.result is None:  # todo: add timeout
             sleep(0.1)
 
             if self.process.result.rc != -1 and self.result is None:
@@ -88,7 +88,9 @@ class ExecutorLocal(ExecutorBase):
                 break
 
             if self.signal_stop:
-                log('Stopping execution')
+                if not self.config.silent:
+                    log('Stopping execution')
+
                 self.process.send_signal(SIGINT)
                 sleep(2)
                 if self.result is None:

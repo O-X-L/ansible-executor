@@ -41,10 +41,19 @@ class ExecutorBase(ABC):
         pass
 
     def execute(self):
-        log('Executing ansible-playbook')
+        if not self.config.silent:
+            log('Executing ansible-playbook')
+
         cmd = self.generate_engine_command()
         self.command = cmd
-        log(f'Command: {cmd}')
+        if not self.config.silent:
+            log(f'Command: {cmd}')
+
+        self.config.env_vars = self.config.add_to_dict(
+            self.config.env_vars,
+            key='ANSIBLE_FORCE_COLOR',
+            value='1' if self.config.output_color else '0',
+        )
 
         self._execute_command(cmd)
         # todo: subprocess execution
