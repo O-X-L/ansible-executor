@@ -92,7 +92,6 @@ class ExecutionConfig:
             Most use-cases may better be addressed by configuring ansible.cfg settings or
                 even variables inside the playbook!
             Additional commandline-arguments to pass to the ansible-playbook execution.
-            They are added right before the playbook-file.
 
             Ansible docs: https://docs.ansible.com/projects/ansible/latest/cli/ansible-playbook.html
             Ansible config docs: https://docs.ansible.com/projects/ansible/latest/reference_appendices/config.html
