@@ -152,6 +152,7 @@ TESTS = [
         'blocking': True,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
         'in_stdout': 'This is Test5',
+        'in_cmd': ['--vault-pass-file'],
     },
     {
         'name': 'Using connect-pass-file (without requiring it)',
@@ -163,6 +164,7 @@ TESTS = [
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_cmd': ['--conn-pass-file'],
     },
     {
         'name': 'Using become-pass-file (without requiring it)',
@@ -174,6 +176,7 @@ TESTS = [
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_cmd': ['--become-pass-file'],
     },
     {
         'name': 'Using ssh-key-file (without requiring it)',
@@ -186,6 +189,30 @@ TESTS = [
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
         'in_stderr': 'Identity added',
+    },
+    {
+        'name': 'Using connect-user (without requiring it)',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': False,
+            'connect_user': 'userConnect',
+        },
+        'exception': None,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_cmd': ['-u userConnect'],
+    },
+    {
+        'name': 'Using become-user (without requiring it)',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': False,
+            'become_user': 'userBecome',
+        },
+        'exception': None,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_cmd': ['--become-user userBecome'],
     },
 ]
 
@@ -280,6 +307,19 @@ for test_nr, test in enumerate(TESTS):
                 sys_exit(1)
 
             continue
+
+    if 'in_cmd' in test:
+        cmd = ' '.join(e.status.process_command)
+        for in_cmd in test['in_cmd']:
+            if in_cmd not in cmd:
+                log(
+                    f"[TEST-ERROR] Required command-substring not found: '{test['in_cmd']}' ({cmd})"
+                )
+                test_failure(test_nr)
+                if LOG_VERBOSE:
+                    sys_exit(1)
+
+                continue
 
     log('[TEST-SUCCESS] Test finished successfully!')
     test_success(test_nr)
