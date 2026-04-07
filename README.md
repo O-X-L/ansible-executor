@@ -123,6 +123,7 @@ print(e.status)
 #   "finished": true,
 #   "playbook_finished": true,
 #   "failed": false,
+#   "canceled": false,
 #   "time_start": 1775500758,
 #   "time_finish": 1775500783,
 #   "timed_out": false,

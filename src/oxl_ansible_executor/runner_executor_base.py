@@ -48,7 +48,7 @@ class ExecutorBase(ABC):
         pass
 
     def execute(self):
-        if not self.config.silent:
+        if self.config.debug:
             log('Executing ansible-playbook')
 
         self.config.env_vars = self.config.add_to_dict(
@@ -59,7 +59,7 @@ class ExecutorBase(ABC):
 
         cmd = self.generate_engine_command()
         self.command = cmd
-        if not self.config.silent:
+        if self.config.debug:
             log(f'Command: {cmd}')
 
         self._create_process(cmd)
@@ -89,7 +89,7 @@ class ExecutorBase(ABC):
             sleep(0.1)
 
             if (time() - self.config.timeout_sec_run) > time_start:
-                if not self.config.silent:
+                if self.config.debug:
                     log('Executor timeout reached')
 
                 self.signal_stop = True
@@ -100,7 +100,7 @@ class ExecutorBase(ABC):
                 break
 
             if self.signal_stop:
-                if not self.config.silent:
+                if self.config.debug:
                     log('Stopping execution')
 
                 # try to end ansible 'gracefully'

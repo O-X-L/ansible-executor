@@ -43,7 +43,7 @@ class ExecutorLocal(ExecutorBase):
         if self.config._ssh_key is not None:
             return wrap_cmd_in_ssh_agent(cmd=cmd, ssh_key_file=self._pipe_ssh_key)
 
-        if not self.config.silent:
+        if self.config.debug:
             log(f"Engine command: {cmd}")
 
         return cmd

@@ -166,8 +166,8 @@ class ExecutionConfig:
 
         ### RUNNER-SPECIFIC
 
-        silent:
-            Whether the executor should omit all output to stdout.
+        debug:
+            Whether the executor should print some debug-output to stdout.
 
         containerized:
             Whether to execute ansible inside a container.
@@ -272,7 +272,7 @@ class ExecutionConfig:
 
             ssh_known_hosts_file: (str, Path) = None,
 
-            silent: bool = False,
+            debug: bool = False,
             containerized: bool = False,
             container_engine: str = None,
             container_image: str = None,
@@ -301,8 +301,8 @@ class ExecutionConfig:
         self.tags: (str, None) = self._build_csv(tags)
         self.skip_tags: (str, None) = self._build_csv(skip_tags)
 
-        self.extra_vars: (dict, None) = extra_vars
-        self.env_vars: (dict, None) = env_vars
+        self.extra_vars: (dict[str, str], None) = self._build_dict_of_string(extra_vars)
+        self.env_vars: (dict[str, str], None) = self._build_dict_of_string(env_vars)
         self.env_vars_strip: (list[str], None) = env_vars_strip
         self.cmd_args: (str, list[str], None) = self._build_cmd_args(cmd_args)
 
@@ -335,7 +335,7 @@ class ExecutionConfig:
 
         self.ssh_known_hosts_file: (str, Path, None) = ssh_known_hosts_file
 
-        self.silent: bool = silent
+        self.debug: bool = debug
         self.containerized: bool = containerized
         self.container_engine: str = self._build_container_engine(
             containerized=containerized,
@@ -550,6 +550,21 @@ class ExecutionConfig:
 
         return cmd_args
 
+    @staticmethod
+    def _build_dict_of_string(value: (dict, None)) -> (dict[str, str], None):
+        if value is None:
+            return None
+
+        if not isinstance(value, dict):
+            # will fail validation
+            return value
+
+        out = {}
+        for k, v in value.items():
+            out[str(k)] = str(v)
+
+        return out
+
     def _validate_playbook_dir(self):
         if str(self.playbook_dir).strip() == '':
             raise ConfigError(
@@ -562,7 +577,7 @@ class ExecutionConfig:
         if not self.playbook_dir.is_dir():
             raise SetupError(f"Provided 'playbook_dir' should be an existing directory! ({self.playbook_dir})")
 
-        if not str(self.playbook_dir).startswith('/') and not self.silent:
+        if not str(self.playbook_dir).startswith('/') and self.debug:
             log("It is recommended to use absolute paths for 'playbook_dir'!")
 
     def _validate_playbook_file(self):
@@ -613,7 +628,7 @@ class ExecutionConfig:
         if not self.run_dir.is_dir():
             raise SetupError(f"Provided 'run_dir' should be an existing directory! ({self.run_dir})")
 
-        if not str(self.run_dir).startswith('/') and not self.silent:
+        if not str(self.run_dir).startswith('/') and self.debug:
             log("It is recommended to use absolute paths for 'run_dir'!")
 
     def _validate_ssh_key_file(self):
@@ -667,7 +682,7 @@ class ExecutionConfig:
             raise ConfigError(f"Got bad type for '{which_var}' : {type(path)} (should be str or Path)")
 
     def _validate_bools(self):
-        for attr in ['mode_check', 'mode_diff', 'containerized', 'output_color', 'silent', 'container_image_pull']:
+        for attr in ['mode_check', 'mode_diff', 'containerized', 'output_color', 'debug', 'container_image_pull']:
             value = getattr(self, attr)
             if not isinstance(value, bool):
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be bool)")
@@ -707,7 +722,7 @@ class ExecutionConfig:
                 f"(should be one of: 0o600 0o640 0o660 0o644 0o664)",
             )
 
-        if self.log_file_mode in [0o644, 0o664] and not self.silent:
+        if self.log_file_mode in [0o644, 0o664] and self.debug:
             log(
                 "Provided 'log_file_mode' allows 'other' users to read the logs - this might be a security issue! "
                 "Maybe utilize 'log_file_owner_group' instead?",

@@ -104,14 +104,14 @@ class Execution:
             pipe_vault_pass=self.__secret_pipe_vault_pass,
         )
         self._status.executor = self._executor
-        if not self.config.silent:
+        if self.config.debug:
             log(f"Using executor: {name}")
 
     def _prepare_executor(self):
         self._executor.prepare_engine()
 
     def _execute_blocking(self):
-        if not self.config.silent:
+        if self.config.debug:
             log(f"Using log files: {self.config.log_stdout_file} & {self.config.log_stderr_file}")
 
         self._executor.execute()
@@ -129,7 +129,7 @@ class Execution:
         while not self.status.finished:
             sleep(0.1)
             if (time() - timeout) > time_start:
-                if not self.config.silent:
+                if self.config.debug:
                     log('Execution timeout reached')
 
                 break
@@ -141,7 +141,7 @@ class Execution:
 
     def _create_secret_pipes(self):
         # pylint: disable=W0212
-        if not self.config.silent:
+        if self.config.debug:
             log('Creating secret-pipes')
 
         self._create_secret_pipe(
@@ -177,7 +177,7 @@ class Execution:
         self._secret_pipe_threads.append(t)
 
     def _create_log_files(self):
-        if not self.config.silent:
+        if self.config.debug:
             log('Creating log-files')
 
         if not DEFAULT_LOG_DIR.is_dir():
@@ -210,7 +210,7 @@ class Execution:
         if self.config.ssh_known_hosts_file is None:
             return
 
-        if not self.config.silent:
+        if self.config.debug:
             log('Copying SSH-known-hosts file')
 
         with open(self.config.ssh_known_hosts_file, 'r', encoding='utf-8') as f:

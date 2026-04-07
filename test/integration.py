@@ -210,7 +210,7 @@ for test_nr, test in enumerate(TESTS):
 
     try:
         log('[TEST-INFO] Init config')
-        c = ExecutionConfig(**test['config'], silent=not LOG_VERBOSE)
+        c = ExecutionConfig(**test['config'], debug=LOG_VERBOSE)
 
         log('[TEST-INFO] Init execution')
         e = Execution(c)

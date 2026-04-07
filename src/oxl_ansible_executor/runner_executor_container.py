@@ -174,7 +174,7 @@ class ExecutorContainer(ExecutorBase):
             # optional update
             return
 
-        if not self.config.silent:
+        if self.config.debug:
             log(f'Pulling container-image: {self.config.container_image}')
 
         image_pull = process(
@@ -192,11 +192,11 @@ class ExecutorContainer(ExecutorBase):
         if not configured_image_exists:
             raise ExecutionError(msg)
 
-        if not self.config.silent:
+        if self.config.debug:
             log(msg)
 
     def _build_container_image_fallback(self):
-        if not self.config.silent:
+        if self.config.debug:
             log('Building fallback container-image')
 
         path_dockerfile = Path(__file__).parent / 'container'
@@ -215,7 +215,7 @@ class ExecutorContainer(ExecutorBase):
             f'AR_UID=${getuid()}',
             '.',
         ]
-        if not self.config.silent:
+        if self.config.debug:
             log(f'Build command: {cmd}')
 
         image_build = process(
@@ -261,7 +261,7 @@ class ExecutorContainer(ExecutorBase):
 
         cmd.extend(inside_cmd)
 
-        if not self.config.silent:
+        if self.config.debug:
             log(f"Engine command: {cmd}")
 
         raise NotImplementedError('Engine command has to be implemented!')
