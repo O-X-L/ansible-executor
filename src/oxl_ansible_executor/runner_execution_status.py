@@ -31,6 +31,10 @@ class ExecutionStatus:
         return self._executor.timed_out
 
     @property
+    def canceled(self) -> bool:
+        return self._executor.signal_stop
+
+    @property
     def ansible_command(self) -> (None, list[str]):
         if self._executor is None:
             return None
@@ -124,6 +128,7 @@ class ExecutionStatus:
             'finished': self.finished,
             'playbook_finished': self.playbook_finished,
             'failed': self.failed,
+            'canceled': self.canceled,
             'time_start': self.time_start,
             'time_finish': self.time_finish,
             'timed_out': self.timed_out,

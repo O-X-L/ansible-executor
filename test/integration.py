@@ -61,7 +61,7 @@ TESTS = [
             'output_color': False,
         },
         'exception': None,
-        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False, 'canceled': False},
     },
     {
         'name': 'Using extra-vars',
@@ -108,7 +108,7 @@ TESTS = [
         'exception': None,
         'blocking': False,
         'stop': True,
-        'result': {'failed': True, 'finished': True, 'playbook_finished': False, 'timed_out': False},
+        'result': {'failed': True, 'finished': True, 'playbook_finished': False, 'timed_out': False, 'canceled': True},
         'in_stderr': 'User interrupted execution',
     },
     {
