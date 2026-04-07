@@ -60,29 +60,7 @@ class Execution:
         self._secret_pipe_threads = []
         self._ssh_known_hosts_file = self._path_run / f'.{get_random_str(20)}'
 
-    def run(self, blocking: bool = True) -> (None, ExecutionStatus):
-        self.config.validate()
-
-        if self.__started:
-            raise PreparationError('A runner-execution should only be invoked once. Create a new one!')
-
-        self.__started = True
-
-        self._before()
-        if blocking:
-            self._execute_blocking()
-            self._after()
-            return self.status
-
-        self._execute_non_blocking()
-        return None
-
-    def _before(self):
-        self._copy_ssh_known_hosts_file()
-        self._create_log_files()
         self._get_executor()
-        self._prepare_executor()
-        self._create_secret_pipes()
 
     def _get_executor(self):
         executor = ExecutorLocal
@@ -106,6 +84,29 @@ class Execution:
         self._status.executor = self._executor
         if self.config.debug:
             log(f"Using executor: {name}")
+
+    def run(self, blocking: bool = True) -> (None, ExecutionStatus):
+        self.config.validate()
+
+        if self.__started:
+            raise PreparationError('A runner-execution should only be invoked once. Create a new one!')
+
+        self.__started = True
+
+        self._before()
+        if blocking:
+            self._execute_blocking()
+            self._after()
+            return self.status
+
+        self._execute_non_blocking()
+        return None
+
+    def _before(self):
+        self._copy_ssh_known_hosts_file()
+        self._create_log_files()
+        self._prepare_executor()
+        self._create_secret_pipes()
 
     def _prepare_executor(self):
         self._executor.prepare_engine()
