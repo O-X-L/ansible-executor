@@ -52,7 +52,7 @@ Feel free to give feedback as [GitHub issues](https://github.com/O-X-L/ansible-e
       - [ ] Podman
   - [ ] Functionality
     - [x] Playbook targeting local machine
-    - [ ] Playbook targeting remote Linux server (SSH-Key, Connect-Pass, Become-Pass, Vault-Pass)
+    - [x] Playbook targeting remote Linux server (SSH-Key, Connect-Pass, Become-Pass, Vault-Pass)
       - [x] Pass secrets via one-time-read Pipes/FIFO (*in-memory - does not write to disk*)
     - [x] Stopping job
     - [x] Redirect output (stdout/stderr) to log-files
