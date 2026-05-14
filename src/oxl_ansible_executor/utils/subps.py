@@ -315,6 +315,7 @@ class Process:
             env = args.env.copy()
 
         if not args.env_inherit:
+            env['PATH'] = environ.get('PATH', '/usr/local/bin:/usr/bin:/bin')
             return env
 
         env_remove = []

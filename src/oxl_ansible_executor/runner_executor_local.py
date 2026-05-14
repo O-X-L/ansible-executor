@@ -1,7 +1,6 @@
 from pathlib import Path
 from shutil import which as find_executable
 
-from utils.debug import log
 from utils.subps import Process, ProcessArgs
 
 from runner_executor_base import ExecutorBase
@@ -43,9 +42,6 @@ class ExecutorLocal(ExecutorBase):
         if self.config._ssh_key is not None:
             return wrap_cmd_in_ssh_agent(cmd=cmd, ssh_key_file=self._pipe_ssh_key)
 
-        if self.config.debug:
-            log(f"Engine command: {cmd}")
-
         return cmd
 
     def prepare_engine(self):
@@ -56,6 +52,7 @@ class ExecutorLocal(ExecutorBase):
             cwd=self.config.playbook_dir,
             timeout_sec=self.config.timeout_sec_run,
             env=self.config.env_vars,
+            env_inherit=True,
             env_remove=self.config.env_vars_strip,
             file_stdout=self.config.log_stdout_file,
             file_stderr=self.config.log_stderr_file,
