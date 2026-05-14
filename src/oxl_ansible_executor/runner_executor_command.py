@@ -36,9 +36,6 @@ class AnsibleCommand:
         if self.config.connect_user is not None:
             args.extend(['-u', self.config.connect_user])
 
-        if self.config._ssh_key is not None and self.__secret_pipe_ssh_key is not None:
-            args.extend(['--key-file', str(self.__secret_pipe_ssh_key)])
-
         if self.config._connect_pass is not None and self.__secret_pipe_connect_pass is not None:
             args.extend(['--conn-pass-file', str(self.__secret_pipe_connect_pass)])
 
