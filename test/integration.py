@@ -52,6 +52,9 @@ run_at_exit(cleanup_tmpfiles)
 
 # TEST CONFIG
 
+TEST_ENGINE = environ.get('AR_TEST_ENGINE', 'local')
+TEST_CONTAINER = TEST_ENGINE != 'local'
+TEST_CONTAINER_ENGINE = None if TEST_ENGINE == 'local' else TEST_ENGINE
 TESTS = [
     {
         'name': 'Basic targeting localhost',
@@ -59,6 +62,8 @@ TESTS = [
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
             'output_color': False,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False, 'canceled': False},
@@ -70,6 +75,8 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'extra_vars': {'test': 'test2'},
             'output_color': False,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': True, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -82,6 +89,8 @@ TESTS = [
             'extra_vars': {'test': 'test2'},
             'env_vars': {'TEST2_VAR': 'SomeRandomValue'},
             'output_color': False,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -92,6 +101,8 @@ TESTS = [
             'playbook_dir': PATH_TESTDATA,
             'playbook_file': 'play1.yml',
             'output_color': True,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -104,12 +115,14 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'extra_vars': {'test': 'test3'},  # sleeps some time so we can kill it
             'output_color': False,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'blocking': False,
         'stop': True,
         'result': {'failed': True, 'finished': True, 'playbook_finished': False, 'timed_out': False, 'canceled': True},
-        'in_stderr': 'User interrupted execution',
+        'in_stderr': 'User interrupted execution' if not TEST_CONTAINER else 'KeyboardInterrupt',
     },
     {
         'name': 'Execution timed-out',
@@ -119,6 +132,8 @@ TESTS = [
             'extra_vars': {'test': 'test3'},  # sleeps some time so it can timeout
             'timeout_sec_run': 2,
             'output_color': False,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'blocking': True,
@@ -133,6 +148,8 @@ TESTS = [
             'extra_vars': {'test': 'test5'},  # has a vault-secret configured
             'vault_pass_value': 'SuperSecret!',
             'output_color': False,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'blocking': True,
@@ -147,6 +164,8 @@ TESTS = [
             'extra_vars': {'test': 'test5'},  # has a vault-secret configured
             'vault_pass_file': VAULT_PWD_FILE,
             'output_color': False,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'blocking': True,
@@ -161,6 +180,8 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'output_color': False,
             'connect_pass_file': CONNECT_PWD_FILE,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -173,6 +194,8 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'output_color': False,
             'become_pass_file': BECOME_PWD_FILE,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -185,6 +208,8 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'output_color': False,
             'ssh_key_file': SSH_KEY_FILE,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -197,6 +222,8 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'output_color': False,
             'connect_user': 'userConnect',
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -209,6 +236,8 @@ TESTS = [
             'playbook_file': 'play1.yml',
             'output_color': False,
             'become_user': 'userBecome',
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},

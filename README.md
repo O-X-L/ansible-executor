@@ -51,9 +51,9 @@ Feel free to give feedback as [GitHub issues](https://github.com/O-X-L/ansible-e
   - [x] Config Object & Validation incl. inline-docs
   - [ ] Engines
     - [x] Local Executor
-    - [ ] Container Executor
-      - [ ] Docker
-      - [ ] Podman
+    - [x] Container Executor
+      - [x] Docker
+      - [x] Podman
   - [ ] Functionality
     - [x] Playbook targeting local machine
     - [x] Playbook targeting remote Linux server (SSH-Key, Connect-Pass, Become-Pass, Vault-Pass)
@@ -111,6 +111,7 @@ c = ExecutionConfig(
   playbook_dir='/home/demo/ansible/',
   playbook_file='test.yml',
   inventory_files='inv/env1/hosts.yml',
+  debug=True,  # output infos to stdout (for testing purposes)
 )
 e = Execution(c)
 

@@ -18,7 +18,6 @@ class ExecutorLocal(ExecutorBase):
         self.engine_executable = self._build_engine_executable()
         self._ansible_command_generator = AnsibleCommand(
             config=self.config,
-            pipe_ssh_key=pipe_ssh_key,
             pipe_connect_pass=pipe_connect_pass,
             pipe_become_pass=pipe_become_pass,
             pipe_vault_pass=pipe_vault_pass,
@@ -44,7 +43,7 @@ class ExecutorLocal(ExecutorBase):
 
         return cmd
 
-    def prepare_engine(self):
+    def _prepare_engine(self):
         pass
 
     def _create_process(self, cmd: list[str]):

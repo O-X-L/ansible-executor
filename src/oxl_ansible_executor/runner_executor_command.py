@@ -11,7 +11,6 @@ class AnsibleCommand:
             self,
             config: ExecutionConfig,
 
-            pipe_ssh_key: (Path, None),
             pipe_connect_pass: (Path, None),
             pipe_become_pass: (Path, None),
             pipe_vault_pass: (Path, None),
@@ -25,7 +24,6 @@ class AnsibleCommand:
         self.inventory_files = inventory_files
         self.ssh_known_hosts_file = ssh_known_hosts_file
 
-        self.__secret_pipe_ssh_key = pipe_ssh_key
         self.__secret_pipe_connect_pass = pipe_connect_pass
         self.__secret_pipe_become_pass = pipe_become_pass
         self.__secret_pipe_vault_pass = pipe_vault_pass

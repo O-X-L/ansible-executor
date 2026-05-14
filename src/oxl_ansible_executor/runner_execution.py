@@ -47,20 +47,27 @@ class Execution:
         self._executor.signal_stop = True
 
     def _prepare(self):
+        self._run_id = f'{int(time())}_{get_random_str(5)}'
+        self._cleanup_run_dir = False
         if self.config.run_dir is None:
-            self._path_run = Path(mkdtemp(prefix='ar_'))
+            self._cleanup_run_dir = True
+            self.config.run_dir = Path(mkdtemp(prefix='ar_'))
 
-        else:
-            self._path_run = self.config.run_dir
-
-        self.__secret_pipe_ssh_key = self._path_run / f'.{get_random_str(20)}'
-        self.__secret_pipe_connect_pass = self._path_run / f'.{get_random_str(20)}'
-        self.__secret_pipe_become_pass = self._path_run / f'.{get_random_str(20)}'
-        self.__secret_pipe_vault_pass = self._path_run / f'.{get_random_str(20)}'
+        # pylint: disable=W0212
+        self.__secret_pipe_ssh_key = self._get_secret_pipe_or_none(self.config._ssh_key)
+        self.__secret_pipe_connect_pass = self._get_secret_pipe_or_none(self.config._connect_pass)
+        self.__secret_pipe_become_pass = self._get_secret_pipe_or_none(self.config._become_pass)
+        self.__secret_pipe_vault_pass = self._get_secret_pipe_or_none(self.config._vault_pass)
+        self._ssh_known_hosts_file = self._get_secret_pipe_or_none(self.config.ssh_known_hosts_file)
         self._secret_pipe_threads = []
-        self._ssh_known_hosts_file = self._path_run / f'.{get_random_str(20)}'
 
         self._get_executor()
+
+    def _get_secret_pipe_or_none(self, value: (str, None)) -> (None, Path):
+        if value is None:
+            return None
+
+        return self.config.run_dir / f'.{get_random_str(10)}'
 
     def _get_executor(self):
         executor = ExecutorLocal
@@ -76,6 +83,7 @@ class Execution:
 
         self._executor = executor(
             config=self.config,
+            run_id=self._run_id,
             pipe_ssh_key=self.__secret_pipe_ssh_key,
             pipe_connect_pass=self.__secret_pipe_connect_pass,
             pipe_become_pass=self.__secret_pipe_become_pass,
@@ -109,7 +117,7 @@ class Execution:
         self._create_secret_pipes()
 
     def _prepare_executor(self):
-        self._executor.prepare_engine()
+        self._executor.prepare()
 
     def _execute_blocking(self):
         if self.config.debug:
@@ -138,6 +146,9 @@ class Execution:
         self._after()
 
     def _after(self):
+        if self.config.debug:
+            log('Post-execution tasks')
+
         self.cleanup()
 
     def _create_secret_pipes(self):
@@ -162,8 +173,8 @@ class Execution:
             file=self.__secret_pipe_vault_pass,
         )
 
-    def _create_secret_pipe(self, secret: (str, None), file: Path) -> None:
-        if secret is None:
+    def _create_secret_pipe(self, secret: (str, None), file: (Path, None)) -> None:
+        if secret is None or file is None:
             return
 
         if file.exists():
@@ -184,12 +195,11 @@ class Execution:
         if not DEFAULT_LOG_DIR.is_dir():
             DEFAULT_LOG_DIR.mkdir(parents=True)
 
-        log_file_id = f'{int(time())}_{get_random_str(5)}'
         if self.config.log_stdout_file is None:
-            self.config.log_stdout_file = DEFAULT_LOG_DIR / f'ansible_{log_file_id}_stdout.log'
+            self.config.log_stdout_file = DEFAULT_LOG_DIR / f'ansible_{self._run_id}_stdout.log'
 
         if self.config.log_stderr_file is None:
-            self.config.log_stderr_file = DEFAULT_LOG_DIR / f'ansible_{log_file_id}_stderr.log'
+            self.config.log_stderr_file = DEFAULT_LOG_DIR / f'ansible_{self._run_id}_stderr.log'
 
         self._create_log_file(which_file='stdout', file=self.config.log_stdout_file)
         self._create_log_file(which_file='stderr', file=self.config.log_stderr_file)
@@ -226,7 +236,6 @@ class Execution:
         # is done automatically after:
         #   the ansible-playbook ended
         #   the Runner instance has been deleted
-
         if self.__cleaned_up:
             return
 
@@ -234,8 +243,8 @@ class Execution:
         overwrite_and_delete_file(self.__secret_pipe_connect_pass)
         overwrite_and_delete_file(self.__secret_pipe_become_pass)
         overwrite_and_delete_file(self._ssh_known_hosts_file)
-        if self.config.run_dir is None:
-            rmtree(self._path_run)
+        if self._cleanup_run_dir:
+            rmtree(self.config.run_dir)
 
         for t in self._secret_pipe_threads:
             t.join()

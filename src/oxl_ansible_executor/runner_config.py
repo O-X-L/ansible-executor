@@ -236,40 +236,40 @@ class ExecutionConfig:
     """
     def __init__(
             self,
-            playbook_file: (str, Path),
-            inventory_files: ((str, Path), list[str|Path]) = None,
-            playbook_dir: (str, Path) = None,
+            playbook_file: str|Path,
+            inventory_files: str|Path|list[str|Path] = None,
+            playbook_dir: str|Path = None,
 
             mode_check: bool = False,
             mode_diff: bool = False,
 
-            limit: (str, list[str]) = None,
+            limit: str|list[str] = None,
             host_pattern: str = None,
 
-            tags: (str, list[str]) = None,
-            skip_tags: (str, list[str]) = None,
+            tags: str|list[str] = None,
+            skip_tags: str|list[str] = None,
 
             extra_vars: dict = None,
             env_vars: dict = None,
             env_vars_strip: list[str] = None,
-            cmd_args: (str, list[str]) = None,
+            cmd_args: str|list[str] = None,
 
-            ssh_key_file: (str, Path) = None,
+            ssh_key_file: str|Path = None,
             ssh_key_value: str = None,
             connect_user: str = None,
-            connect_pass_file: (str, Path) = None,
+            connect_pass_file: str|Path = None,
             connect_pass_value: str = None,
             become_user: str = None,
-            become_pass_file: (str, Path) = None,
+            become_pass_file: str|Path = None,
             become_pass_value: str = None,
-            vault_pass_file: (str, Path) = None,
+            vault_pass_file: str|Path = None,
             vault_pass_value: str = None,
-            vault_id: (str, list[str]) = None,
+            vault_id: str|list[str] = None,
 
             verbosity: (str, int) = None,
             output_color: bool = True,
 
-            ssh_known_hosts_file: (str, Path) = None,
+            ssh_known_hosts_file: str|Path = None,
 
             debug: bool = False,
             containerized: bool = False,
@@ -280,11 +280,11 @@ class ExecutionConfig:
             timeout_sec_run: int = 60 * 60,
             timeout_sec_start: int = 5 * 60,
             timeout_container_image_pull_build: int = 3 * 60,
-            run_dir: (str, Path) = None,
-            log_stdout_file: (str, Path) = None,
-            log_stderr_file: (str, Path) = None,
+            run_dir: str|Path = None,
+            log_stdout_file: str|Path = None,
+            log_stderr_file: str|Path = None,
             log_file_mode: int = 0o640,
-            log_file_owner_group: (str, int) = None,
+            log_file_owner_group: str|int = None,
     ):
         self.playbook_dir: Path = self._build_playbook_dir(playbook_dir=playbook_dir, playbook_file=playbook_file)
         self.playbook_file: (str, Path) = self._build_playbook_file(playbook_file)

@@ -1,11 +1,12 @@
 from os import getuid
 from pathlib import Path
-from time import sleep, time
 from shutil import which as find_executable
 
 from utils.debug import log
 from utils.subps import process
 from utils.util import get_random_str
+from utils.subps import Process, ProcessArgs
+from utils.filesystem import write_file_with_mode
 from exceptions import ExecutionError
 from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, FALLBACK_CONTAINER_IMAGE
 
@@ -18,11 +19,11 @@ class ExecutorContainer(ExecutorBase):
     CONTAINER_PATHS = {
         'playbook_dir': '/run/ansible',
         'inventory_files': '/run/ansible_inventory',
-        'pipe_ssh_key': f'/run/.{get_random_str(20)}',
-        'pipe_connect_pass': f'/run/.{get_random_str(20)}',
-        'pipe_become_pass': f'/run/.{get_random_str(20)}',
-        'pipe_vault_pass': f'/run/.{get_random_str(20)}',
-        'ssh_known_hosts_file': f'/run/.{get_random_str(20)}',
+        'pipe_ssh_key': f'/run/.{get_random_str(10)}',
+        'pipe_connect_pass': f'/run/.{get_random_str(10)}',
+        'pipe_become_pass': f'/run/.{get_random_str(10)}',
+        'pipe_vault_pass': f'/run/.{get_random_str(10)}',
+        'ssh_known_hosts_file': f'/run/.{get_random_str(10)}',
     }
 
     def _engine_init(
@@ -43,7 +44,6 @@ class ExecutorContainer(ExecutorBase):
             pipe_vault_pass=pipe_vault_pass,
         )
         cmd_paths = self._build_paths_inside_container(
-            pipe_ssh_key=pipe_ssh_key,
             pipe_connect_pass=pipe_connect_pass,
             pipe_become_pass=pipe_become_pass,
             pipe_vault_pass=pipe_vault_pass,
@@ -53,7 +53,8 @@ class ExecutorContainer(ExecutorBase):
             **cmd_paths,
         )
         self.ansible_command = self._ansible_command_generator.generate()
-        self._container_name = self._build_container_name()
+        self._container_name = f'ansible-executor-{self._run_id}'
+        self._env_var_file = self.config.run_dir / '.env'
 
     def _build_engine_executable(self) -> str:
         executable = find_executable(self.CONTAINER_ENGINE_NAME)
@@ -62,6 +63,7 @@ class ExecutorContainer(ExecutorBase):
 
         return self.CONTAINER_ENGINE_NAME
 
+    # pylint: disable=R0912
     def _build_container_volumes(
             self,
             pipe_ssh_key: Path = None,
@@ -73,41 +75,58 @@ class ExecutorContainer(ExecutorBase):
             str(self.config.playbook_dir): self.CONTAINER_PATHS['playbook_dir'],
         }
 
+        if self.config.debug:
+            log('Volume mapping:')
+
+        # if inventory-files not inside playbook-dir - we need to mount them
         if self.config.inventory_files is not None:
             for i, iv in enumerate(self.config.inventory_files):
                 iv_str = str(iv)
                 if iv_str.startswith('/'):
                     iv_inside = Path(self.CONTAINER_PATHS['inventory_files']) / str(i)
                     volumes[iv_str] = str(iv_inside)
+                    if self.config.debug:
+                        log(f"  {iv_str} => {iv_inside} (inventory)")
 
         if pipe_ssh_key is not None:
             volumes[str(pipe_ssh_key)] = self.CONTAINER_PATHS['pipe_ssh_key']
+            if self.config.debug:
+                log(f"  {pipe_ssh_key} => {self.CONTAINER_PATHS['pipe_ssh_key']} (ssh-key)")
 
         if pipe_connect_pass is not None:
             volumes[str(pipe_connect_pass)] = self.CONTAINER_PATHS['pipe_connect_pass']
+            if self.config.debug:
+                log(f"  {pipe_connect_pass} => {self.CONTAINER_PATHS['pipe_connect_pass']} (connect-pass)")
 
         if pipe_become_pass is not None:
             volumes[str(pipe_become_pass)] = self.CONTAINER_PATHS['pipe_become_pass']
+            if self.config.debug:
+                log(f"  {pipe_become_pass} => {self.CONTAINER_PATHS['pipe_become_pass']} (become-pass)")
 
         if pipe_vault_pass is not None:
             volumes[str(pipe_vault_pass)] = self.CONTAINER_PATHS['pipe_vault_pass']
+            if self.config.debug:
+                log(f"  {pipe_vault_pass} => {self.CONTAINER_PATHS['pipe_vault_pass']} (vault-pass)")
 
         if self.config.ssh_known_hosts_file is not None:
             ssh_kh_str = str(self.config.ssh_known_hosts_file)
             if ssh_kh_str.startswith('/'):
                 volumes[ssh_kh_str] = self.CONTAINER_PATHS['ssh_known_hosts_file']
+                if self.config.debug:
+                    log(
+                        f"  {self.config.ssh_known_hosts_file} => {self.CONTAINER_PATHS['ssh_known_hosts_file']} "
+                        "(ssh-known-hosts)"
+                    )
 
         return volumes
 
     def _build_paths_inside_container(
             self,
-            pipe_ssh_key: Path = None,
             pipe_connect_pass: Path = None,
             pipe_become_pass: Path = None,
             pipe_vault_pass: Path = None,
     )-> dict:
         paths = {
-            'pipe_ssh_key': None,
             'pipe_connect_pass': None,
             'pipe_become_pass': None,
             'pipe_vault_pass': None,
@@ -124,9 +143,6 @@ class ExecutorContainer(ExecutorBase):
                 else:
                     paths['inventory_files'].append(iv)
 
-        if pipe_ssh_key is not None:
-            paths['pipe_ssh_key'] = self.CONTAINER_PATHS['pipe_ssh_key']
-
         if pipe_connect_pass is not None:
             paths['pipe_connect_pass'] = self.CONTAINER_PATHS['pipe_connect_pass']
 
@@ -139,19 +155,16 @@ class ExecutorContainer(ExecutorBase):
         if self.config.ssh_known_hosts_file is not None:
             ssh_kh_str = str(self.config.ssh_known_hosts_file)
             if ssh_kh_str in self._container_volumes:
-                paths['ssh_known_hosts_file'].append(self._container_volumes[ssh_kh_str])
+                paths['ssh_known_hosts_file'] = self._container_volumes[ssh_kh_str]
 
             else:
-                paths['ssh_known_hosts_file'].append(self.config.ssh_known_hosts_file)
+                paths['ssh_known_hosts_file'] = ssh_kh_str
 
         return paths
 
-    @staticmethod
-    def _build_container_name() -> str:
-        return f'ansible-executor-{int(time())}-{get_random_str(5)}'
-
-    def prepare_engine(self):
+    def _prepare_engine(self):
         self._prepare_container_image()
+        self._write_env_var_file()
 
     def _prepare_container_image(self):
         image_query = process(
@@ -204,15 +217,13 @@ class ExecutorContainer(ExecutorBase):
         cmd = [
             self.engine_executable,
             'build',
-            '-f',
-            'Dockerfile',
+            '-f=Dockerfile_fallback',
             '-t',
             FALLBACK_CONTAINER_IMAGE,
-            '--network',
-            'host',
+            '--network=host',
             '--no-cache',
             '--build-arg',
-            f'AR_UID=${getuid()}',
+            f'AR_UID={getuid()}',
             '.',
         ]
         if self.config.debug:
@@ -227,7 +238,26 @@ class ExecutorContainer(ExecutorBase):
         )
 
         if image_build.failed:
-            raise ExecutionError(f"Failed to build fallback container-image: '{FALLBACK_CONTAINER_IMAGE}'")
+            raise ExecutionError(
+                f"Failed to build fallback container-image: '{FALLBACK_CONTAINER_IMAGE}' => {image_build.stderr}"
+            )
+
+    def _write_env_var_file(self):
+        if self.config.env_vars is None or len(self.config.env_vars) == 0:
+            # pylint: disable=W0201
+            self._env_var_file = None
+            return
+
+        env_var_lines = []
+        for key, value in self.config.env_vars.items():
+            key = key.replace('=', '')
+            env_var_lines.append(f"{key}={value}")
+
+        write_file_with_mode(
+            self._env_var_file,
+            content='\n'.join(env_var_lines),
+            file_mode=0o600,
+        )
 
     def _generate_container_args_volumes(self) -> list[str]:
         args = []
@@ -241,7 +271,7 @@ class ExecutorContainer(ExecutorBase):
 
     def _generate_container_args_network(self) -> list[str]:
         if self.config.container_network is None:
-            return []
+            return ['--network=host']
 
         return [
             '--network',
@@ -249,33 +279,49 @@ class ExecutorContainer(ExecutorBase):
         ]
 
     def generate_engine_command(self) -> list[str]:
-        cmd = [self.engine_executable, 'run', '--name', self._container_name]
+        cmd = [
+            self.engine_executable,
+            'run',
+            '--rm',
+            '--name', self._container_name,
+            '-w', self.CONTAINER_PATHS['playbook_dir'],
+        ]
         cmd.extend(self._generate_container_args_volumes())
         cmd.extend(self._generate_container_args_network())
+
+        if self.config.container_engine == CONTAINER_ENGINE_PODMAN:
+            cmd.append('--userns=keep-id')
+
+        if self._env_var_file is not None:
+            cmd.extend(['--env-file', str(self._env_var_file)])
+
         cmd.append(self.config.container_image)
 
         inside_cmd = self.ansible_command.copy()
         # pylint: disable=W0212
         if self.config._ssh_key is not None:
-            inside_cmd = wrap_cmd_in_ssh_agent(cmd=inside_cmd, ssh_key_file=self._pipe_ssh_key)
+            inside_cmd = wrap_cmd_in_ssh_agent(cmd=inside_cmd, ssh_key_file=self.CONTAINER_PATHS['pipe_ssh_key'])
 
         cmd.extend(inside_cmd)
 
-        if self.config.debug:
-            log(f"Engine command: {cmd}")
+        return cmd
 
-        raise NotImplementedError('Engine command has to be implemented!')
-
-    def _create_process(self, cmd: list[str]) -> dict:
-        sleep(30)
-        return {}
+    def _create_process(self, cmd: list[str]):
+        process_args = ProcessArgs(
+            cwd=self.config.run_dir,
+            timeout_sec=self.config.timeout_sec_run,
+            env=None,
+            file_stdout=self.config.log_stdout_file,
+            file_stderr=self.config.log_stderr_file,
+        )
+        self.process = Process(cmd=cmd, args=process_args)
 
     def _send_signal_to_ansible(self, signal: int):
         cmd = [
             self.engine_executable,
             'kill',
             '--signal',
-            signal,
+            str(signal),
             self._container_name,
         ]
         process(

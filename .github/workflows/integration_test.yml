@@ -25,8 +25,19 @@ jobs:
         include:
           # see: https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix
           - ansible_core_version: '2.18'
+            ar_engine: 'local'
+          - ansible_core_version: '2.18'
+            ar_engine: 'docker'
+
           - ansible_core_version: '2.19'
+            ar_engine: 'local'
+          - ansible_core_version: '2.19'
+            ar_engine: 'docker'
+
           - ansible_core_version: '2.20'
+            ar_engine: 'local'
+          - ansible_core_version: '2.20'
+            ar_engine: 'docker'
 
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -73,3 +84,4 @@ jobs:
           AR_TEST: 1
           AR_VENV: '/tmp/ar_venv'
           AR_TEST_VERBOSE: 0
+          AR_TEST_ENGINE: "${{ matrix.ar_engine }}"

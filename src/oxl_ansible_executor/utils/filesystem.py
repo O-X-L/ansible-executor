@@ -49,7 +49,10 @@ def write_file_with_mode(file: (str, Path), content: str, file_mode: int):
         _file.write(content)
 
 
-def overwrite_and_delete_file(file: (str, Path)):
+def overwrite_and_delete_file(file: (str, Path, None)):
+    if file is None:
+        return
+
     if not isinstance(file, Path):
         file = Path(file)
 

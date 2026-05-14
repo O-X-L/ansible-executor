@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+if [ -z "$1" ]
+then
+  export AR_TEST_ENGINE='local'
+else
+  export AR_TEST_ENGINE="$1"
+fi
+
 if [ -z "$AR_TEST_VERBOSE" ]
 then
   AR_TEST_VERBOSE='1'

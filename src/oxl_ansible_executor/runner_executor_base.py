@@ -14,12 +14,14 @@ class ExecutorBase(ABC):
     def __init__(
             self,
             config: ExecutionConfig,
+            run_id: str,
             pipe_ssh_key: Path = None,
             pipe_connect_pass: Path = None,
             pipe_become_pass: Path = None,
             pipe_vault_pass: Path = None,
     ):
         self.config: ExecutionConfig = config
+        self._run_id = run_id
 
         self.process_thread = []
         self.process = None
@@ -47,22 +49,28 @@ class ExecutorBase(ABC):
     ):
         pass
 
+    def prepare(self):
+        self._prepare_base()
+        self._prepare_engine()
+
+    def _prepare_base(self):
+        if self.config.output_color:
+            self.config.env_vars = self.config.add_to_dict(
+                self.config.env_vars,
+                key='ANSIBLE_FORCE_COLOR',
+                value='1',
+            )
+
     def execute(self):
         if self.config.debug:
             log('Executing ansible-playbook')
 
-        self.config.env_vars = self.config.add_to_dict(
-            self.config.env_vars,
-            key='ANSIBLE_FORCE_COLOR',
-            value='1' if self.config.output_color else '0',
-        )
-
-        cmd = self.generate_engine_command()
-        self.command = cmd
+        self.command = self.generate_engine_command()
         if self.config.debug:
-            log(f'Command: {cmd}')
+            log(f"Ansible command: {self.ansible_command}")
+            log(f"Engine command: {self.command}")
 
-        self._create_process(cmd)
+        self._create_process(self.command)
 
         t = Thread(target=self._wait_for_process_to_finish)
         self.process_thread.append(t)
@@ -76,8 +84,14 @@ class ExecutorBase(ABC):
         self.process.close()
 
     def _set_process_result(self):
+        if self.config.debug:
+            log('Process finished')
+
         if self.result is None:
             self.result = deepcopy(self.process.result)
+
+        if self.config.debug:
+            log(f'Process exit-code: {self.result.rc}')
 
         if self.time_finish == -1:
             self.time_finish = int(time())
@@ -136,5 +150,5 @@ class ExecutorBase(ABC):
         raise NotImplementedError('Engine command has to be implemented!')
 
     @abstractmethod
-    def prepare_engine(self):
+    def _prepare_engine(self):
         raise NotImplementedError('Engine preparation has to be implemented!')

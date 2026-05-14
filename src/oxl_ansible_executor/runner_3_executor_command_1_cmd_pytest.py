@@ -48,7 +48,6 @@ def test_runner_executor_generate_command_wo_secrets(kwargs: dict, args: str):
     c = ExecutionConfig(**kwargs)
     a = AnsibleCommand(
         config=c,
-        pipe_ssh_key=None,
         pipe_connect_pass=None,
         pipe_become_pass=None,
         pipe_vault_pass=None,
@@ -88,7 +87,6 @@ def test_runner_executor_generate_command_with_secrets(kwargs: dict, args: str):
     c = ExecutionConfig(**kwargs)
     a = AnsibleCommand(
         config=c,
-        pipe_ssh_key=None,
         pipe_connect_pass=None,
         pipe_become_pass=None,
         pipe_vault_pass=None,
