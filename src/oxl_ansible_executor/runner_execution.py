@@ -186,10 +186,10 @@ class Execution:
 
         log_file_id = f'{int(time())}_{get_random_str(5)}'
         if self.config.log_stdout_file is None:
-            self.config.log_stdout_file = DEFAULT_LOG_DIR / f'ansible_stdout_{log_file_id}.log'
+            self.config.log_stdout_file = DEFAULT_LOG_DIR / f'ansible_{log_file_id}_stdout.log'
 
         if self.config.log_stderr_file is None:
-            self.config.log_stderr_file = DEFAULT_LOG_DIR / f'ansible_stderr_{log_file_id}.log'
+            self.config.log_stderr_file = DEFAULT_LOG_DIR / f'ansible_{log_file_id}_stderr.log'
 
         self._create_log_file(which_file='stdout', file=self.config.log_stdout_file)
         self._create_log_file(which_file='stderr', file=self.config.log_stderr_file)

@@ -217,12 +217,12 @@ class ExecutionConfig:
         log_stdout_file:
             Path to a location where the output of ansible-playbook should be logged to.
             This may not be an existing file!
-            By default, it is created within the 'run_dir' and has the naming 'ansible_stdout_*.log'
+            By default, it is created within the 'run_dir' and has the naming 'ansible_*_stdout.log'
 
         log_stderr_file:
             Path to a location where the error-output of ansible-playbook should be logged to.
             This may not be an existing file!
-            By default, it is created within the 'run_dir' and has the naming 'ansible_stderr_*.log'
+            By default, it is created within the 'run_dir' and has the naming 'ansible_*_stderr.log'
 
         log_file_mode:
             File-mode to set for the log-files.

@@ -31,11 +31,15 @@ The implementation will be opinionated and will have a 'narrow' interface.
 
 I was not 100% happy with the official [ansible-runner](https://github.com/ansible/ansible-runner) library.
 
-It provides a lot more functionality than we actually need (*only executing ansible-playbooks*) and thus has a lot more complexity added-on. This makes it also hard to troubleshoot.
+* `ansible-runner` provides a lot more functionality than we actually need (*only executing ansible-playbooks*) and thus has a lot more complexity added-on. This makes it also hard to troubleshoot.
+
+* `ansible-runner` has lax input-validation - bad user-input might be silently skipped/ignored and thus lead to unexpected behaviour
 
 As I needed an alternative I wanted to provide it to the community to play with. (:
 
 I will try to create a transparent documentation and a lot of unit- & integration-tests!
+
+All user-inputs are validated for data-type and value.
 
 Feel free to give feedback as [GitHub issues](https://github.com/O-X-L/ansible-executor/issues) or [email](mailto://contact+ansibleexecutor@oxl.at).
 
@@ -114,7 +118,7 @@ e.run(blocking=True)
 # [INFO] Creating log-files
 # [INFO] Using executor: local
 # [INFO] Creating secret-pipes
-# [INFO] Using log files: /home/demo/.local/share/oxl-ansible-executor/ansible_stdout_1775500760_lhWOT.log & /home/demo/.local/share/oxl-ansible-executor/ansible_stderr_1775500760_lhWOT.log
+# [INFO] Using log files: /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stdout.log & /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stderr.log
 # [INFO] Executing ansible-playbook
 # [INFO] Command: ['ssh-agent', 'sh', '-c', 'ssh-add /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --key-file /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw --become-pass-file /tmp/ar_znjp4bih/.SHVTpOYOH93aaZBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwkiXZ7YrpEvGY8BnyF2 syslog.yml']
 
@@ -128,8 +132,8 @@ print(e.status)
 #   "time_finish": 1775500783,
 #   "timed_out": false,
 #   "time_duration_sec": 25,
-#   "log_stdout_file": "/home/demo/.local/share/oxl-ansible-executor/ansible_stdout_1775500760_lhWOT.log",
-#   "log_stderr_file": "/home/demo/.local/share/oxl-ansible-executor/ansible_stderr_1775500760_lhWOT.log",
+#   "log_stdout_file": "/home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stdout.log",
+#   "log_stderr_file": "/home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stderr.log",
 #   "ansible_command": [
 #     "ansible-playbook",
 #     "-i",
