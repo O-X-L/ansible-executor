@@ -100,6 +100,22 @@ pip install oxl-ansible-executor
 
 See: [pypi.org/oxl-ansible-executor](https://pypi.org/project/oxl-ansible-executor/)
 
+### Custom Container-Image for execution
+
+Use the [default/fallback container image](https://github.com/O-X-L/ansible-executor/blob/latest/src/oxl_ansible_executor/container/Dockerfile_fallback) as a template.
+
+### Execution Stats
+
+If you want to have access to execution-stats - make sure to install and enable the plugin:
+
+```
+# inside the execution-venv or -container
+pip install oxl-ansible-executor-plugins
+
+# enable the plugin by adding its path to the env-variable
+ANSIBLE_CALLBACK_PLUGINS=${ANSIBLE_CALLBACK_PLUGINS:,}$(oxl-ansible-executor-plugins-callback)
+```
+
 ----
 
 ## Usage

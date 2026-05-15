@@ -13,9 +13,9 @@ RUN apk add --update --no-cache git git-lfs openssh-client sshpass openssl >/dev
 ENV PYTHONUNBUFFERED=1 \
     PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${AR_HOME}/.local/bin \
     ANSIBLE_ACTION_PLUGINS=${AR_HOME}/.local/lib/python${AR_PY_VER}/site-packages/ara/plugins/action \
-    ANSIBLE_CALLBACK_PLUGINS=${AR_HOME}/.local/lib/python${AR_PY_VER}/site-packages/ara/plugins/callback \
+    ANSIBLE_CALLBACK_PLUGINS=${AR_HOME}/.local/lib/python${AR_PY_VER}/site-packages/ara/plugins/callback,${AR_HOME}/.local/lib/python${AR_PY_VER}/site-packages/oxl_ansible_executor_plugins/callback \
     ANSIBLE_LOOKUP_PLUGINS=${AR_HOME}/.local/lib/python${AR_PY_VER}/site-packages/ara/plugins/lookup
 
 USER ${AR_USER}
 
-RUN pip install --user ansible-core ara passlib netaddr jmespath cryptography >/dev/null
+RUN pip install --user ansible-core oxl-ansible-executor-plugins ara passlib netaddr jmespath cryptography >/dev/null

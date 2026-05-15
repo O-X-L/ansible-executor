@@ -3,11 +3,11 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oxl-ansible-executor"
+name = "oxl-ansible-executor-plugins"
 authors = [
     {name = "Pascal Rath", email = "rath@oxl.at"},
 ]
-description = "Simple & Transparent Executor for Ansible-Playbooks"
+description = "Ansible-Plugins for the Simple & Transparent Executor for Ansible-Playbooks"
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = ["ansible", "executor", "runner", "automation", "iac"]
@@ -31,7 +31,10 @@ version = {file = ["VERSION"]}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["oxl_ansible_executor"]
+include = ["oxl_ansible_executor_plugins", "oxl_ansible_executor_plugins.*"]
 
 [tool.setuptools.package-data]
-"*" = ["Dockerfile*"]
+"*" = []
+
+[project.scripts]
+oxl-ansible-executor-plugins-callback = "oxl_ansible_executor_plugins.__script__:get_path_callback"
