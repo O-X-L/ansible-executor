@@ -113,7 +113,7 @@ If you want to have access to execution-stats - make sure to install and enable 
 pip install oxl-ansible-executor-plugins
 
 # enable the plugin by adding its path to the env-variable
-ANSIBLE_CALLBACK_PLUGINS=${ANSIBLE_CALLBACK_PLUGINS:,}$(oxl-ansible-executor-plugins-callback)
+ANSIBLE_CALLBACK_PLUGINS="${ANSIBLE_CALLBACK_PLUGINS:+${ANSIBLE_CALLBACK_PLUGINS}:}$(oxl-ansible-executor-plugins-callback)"
 ```
 
 ----
