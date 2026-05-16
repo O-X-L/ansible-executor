@@ -60,18 +60,18 @@ Feel free to give feedback as [GitHub issues](https://github.com/O-X-L/ansible-e
       - [x] Pass secrets via one-time-read Pipes/FIFO (*in-memory - does not write to disk*)
     - [x] Stopping job
     - [x] Redirect output (stdout/stderr) to log-files
-    - [ ] Playbook Status (*per category, per host*)
-      - [ ] Track stati at runtime
+    - [x] Playbook Status (*per category, per host*)
+      - [x] Track stati at runtime
 - [ ] Tests
   - [ ] Unit-Tests for all components (>85% coverage)
     - [x] Execution Config-Validation
-    - [ ] Execution
-      - [ ] Before
-        - [ ] Base-Executor
-        - [ ] Local Executor-Engine
-        - [ ] Containerized Executor-Engine
-      - [ ] After
-      - [ ] Execution-Status
+    - [x] Execution
+      - [x] Before
+        - [x] Base-Executor
+        - [x] Local Executor-Engine
+        - [x] Containerized Executor-Engine
+      - [x] After
+      - [x] Execution-Status
   - [ ] Integration-Tests for many practical use-cases
     - [x] Simple execution targeting localhost
     - [x] Passing extra-vars

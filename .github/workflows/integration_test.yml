@@ -21,6 +21,7 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         include:
           # see: https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix

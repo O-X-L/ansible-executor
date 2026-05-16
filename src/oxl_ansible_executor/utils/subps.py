@@ -173,10 +173,10 @@ class Process:
             self._result.rc = self.p.returncode
 
             if self.args.file_stdout is None:
-                self._result.stdout = b_stdout.decode('utf-8').strip()
+                self._result._stdout = b_stdout.decode('utf-8').strip()
 
             if self.args.file_stderr is None:
-                self._result.stderr = b_stderr.decode('utf-8').strip()
+                self._result._stderr = b_stderr.decode('utf-8').strip()
 
         except (subprocess.TimeoutExpired, subprocess.SubprocessError, subprocess.CalledProcessError,
                 OSError, IOError, FileNotFoundError) as error:
