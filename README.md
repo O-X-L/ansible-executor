@@ -128,6 +128,8 @@ c = ExecutionConfig(
   playbook_file='test.yml',
   inventory_files='inv/env1/hosts.yml',
   debug=True,  # output infos to stdout (for testing purposes)
+  load_log_stdout=True,  # loads the stdout for the execution-result; not recommended for long-running jobs
+  load_log_stderr=True,  # loads the stderr for the execution-result
 )
 e = Execution(c)
 
@@ -137,7 +139,7 @@ e.run(blocking=True)
 # [INFO] Creating secret-pipes
 # [INFO] Using log files: /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stdout.log & /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stderr.log
 # [INFO] Executing ansible-playbook
-# [INFO] Command: ['ssh-agent', 'sh', '-c', 'ssh-add /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --key-file /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw --become-pass-file /tmp/ar_znjp4bih/.SHVTpOYOH93aaZBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwkiXZ7YrpEvGY8BnyF2 syslog.yml']
+# [INFO] Command: ['ssh-agent', 'sh', '-c', 'ssh-add /tmp/ar_znjp4bih/.fIWqfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --become-pass-file /tmp/ar_znjp4bih/.SHVTBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwGY8BnyF2 syslog.yml']
 
 print(e.status)
 # {
@@ -159,19 +161,17 @@ print(e.status)
 #     "-D",
 #     "-l",
 #     "srv1",
-#     "--key-file",
-#     "/tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw",
 #     "--become-pass-file",
-#     "/tmp/ar_znjp4bih/.SHVTpOYOH93aaZBTAgVJ",
+#     "/tmp/ar_znjp4bih/.SHVTBTAgVJ",
 #     "--vault-pass-file",
-#     "/tmp/ar_znjp4bih/.GwkiXZ7YrpEvGY8BnyF2",
+#     "/tmp/ar_znjp4bih/.GwGY8BnyF2",
 #     "syslog.yml"
 #   ],
 #   "process_command": [
 #     "ssh-agent",
 #     "sh",
 #     "-c",
-#     "ssh-add /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --key-file /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw --become-pass-file /tmp/ar_znjp4bih/.SHVTpOYOH93aaZBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwkiXZ7YrpEvGY8BnyF2 syslog.yml"
+#     "ssh-add /tmp/ar_znjp4bih/.fIWqfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --become-pass-file /tmp/ar_znjp4bih/.SHVTBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwGY8BnyF2 syslog.yml"
 #   ],
 #   "process_rc": 0,
 #   "process_result": {
@@ -210,7 +210,7 @@ print(e.status)
 #       "srv1                       : ok=7    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0"
 #     ],
 #     "stderr_lines": [
-#       "Identity added: /tmp/ar_znjp4bih/.fIWqOdKaPzGioFfDljSw (Demo)"
+#       "Identity added: /tmp/ar_znjp4bih/.fIWqfDljSw (Demo)"
 #     ]
 #   }
 # }

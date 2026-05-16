@@ -238,13 +238,26 @@ class Execution:
         if self.config.debug:
             log('Cleaning stats-sections from log-files')
 
+        if self.config.debug:
+            return
+
+        # make sure the stats are loaded and cached before we clean them from the logs
+        _ = self.status.stats
+
+        selectors_to_clean = []
         if self.config.stats_live:
-            self._clean_stats_sections_from_stdout_log_single(SELECTOR_STATS_LIVE_BEGIN)
+            selectors_to_clean.append(SELECTOR_STATS_LIVE_BEGIN)
 
         if self.config.stats_recap:
-            self._clean_stats_sections_from_stdout_log_single(SELECTOR_STATS_RECAP_BEGIN)
+            selectors_to_clean.append(SELECTOR_STATS_RECAP_BEGIN)
 
-    def _clean_stats_sections_from_stdout_log_single(self, selector_begin: str):
+        if len(selectors_to_clean) == 0:
+            return
+
+        self._clean_stats_sections_from_stdout_log_io(selectors_to_clean)
+        self.status.set_log_file_cleaned()
+
+    def _clean_stats_sections_from_stdout_log_io(self, selectors_begin: list[str]):
         tmp_log_file = f'{self.config.log_stdout_file}.tmp'
         opener = get_file_opener_from_mode(self.config.log_file_mode)
 
@@ -254,7 +267,13 @@ class Execution:
                 open(tmp_log_file, 'w', encoding='utf-8', opener=opener) as outfile,
             ):
                 for line in infile:
-                    if line.startswith(selector_begin):
+                    skip = False
+                    for selector_begin in selectors_begin:
+                        if line.startswith(selector_begin):
+                            skip = True
+                            break
+
+                    if skip:
                         continue
 
                     outfile.write(line)

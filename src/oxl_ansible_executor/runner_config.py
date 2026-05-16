@@ -308,7 +308,7 @@ class ExecutionConfig:
             log_file_mode: int = 0o640,
             log_file_owner_group: str|int = None,
             load_log_stdout: bool = False,
-            load_log_stderr: bool = False,
+            load_log_stderr: bool = True,
     ):
         self.playbook_dir: Path = self._build_playbook_dir(playbook_dir=playbook_dir, playbook_file=playbook_file)
         self.playbook_file: (str, Path) = self._build_playbook_file(playbook_file)

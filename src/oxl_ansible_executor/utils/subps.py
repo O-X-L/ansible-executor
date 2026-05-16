@@ -56,16 +56,6 @@ class ProcessResult:
 
         return self._stdout
 
-    @stdout.setter
-    def stdout(self, value: str):
-        self._stdout = value
-
-    def stdout_append(self, value: str):
-        if self._stdout is None:
-            self._stdout = value
-
-        self._stdout += value
-
     @property
     def stdout_lines(self) -> list[str]:
         if self.stdout is None:
@@ -85,16 +75,6 @@ class ProcessResult:
             return None
 
         return self._stderr
-
-    @stderr.setter
-    def stderr(self, value: str):
-        self._stderr = value
-
-    def stderr_append(self, value: str):
-        if self._stderr is None:
-            self._stderr = value
-
-        self._stderr += value
 
     @property
     def stderr_lines(self) -> list[str]:
@@ -179,8 +159,6 @@ class Process:
         if self._result.rc == -1:
             self._result.rc = self.p.returncode
 
-        self._load_stdout_stderr_from_logfiles()
-
     def wait_until_finished(self) -> ProcessResult:
         if not self._started:
             self.start()
@@ -258,31 +236,11 @@ class Process:
     def _log_process_error(self, error):
         self._result.process_error = True
         stderr = str(error)
-        self._result.stderr_append(stderr)
         self._result.rc = 1
 
         if self.args.file_stderr is not None:
             with open(self.args.file_stderr, 'a', encoding='utf-8') as f:
                 f.write('\n' + stderr + '\n')
-
-    def _load_stdout_stderr_from_logfiles(self):
-        if self._log_files_loaded:
-            return
-
-        self._log_files_loaded = True
-        if self.args.file_stdout is not None:
-            if self._result.stdout is None:
-                self._result.stdout = ''
-
-            with open(self.args.file_stdout, 'r', encoding='utf-8') as f:
-                self._result.stdout_append(f.read().strip())
-
-        if self.args.file_stderr is not None:
-            if self._result.stderr is None:
-                self._result.stderr = ''
-
-            with open(self.args.file_stderr, 'r', encoding='utf-8') as f:
-                self._result.stderr_append(f.read().strip())
 
     @staticmethod
     def _build_cwd(cwd: (str, Path, None)) -> (str, Path):

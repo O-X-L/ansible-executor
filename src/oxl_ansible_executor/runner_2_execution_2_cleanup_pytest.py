@@ -3,53 +3,74 @@ from pathlib import Path
 import pytest
 
 from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
-from runner_execution import ExecutionConfig, Execution
+from runner_execution import ExecutionConfig, Execution, ExecutionStatus
 from config import SELECTOR_STATS_RECAP_BEGIN, SELECTOR_STATS_LIVE_BEGIN, SELECTOR_STATS_LIVE_END, \
     SELECTOR_STATS_RECAP_END
 
 
-def test_clean_stats_sections_from_stdout_log_single(tmp_path: Path):
-    """Test cleaning a specific selector from the log file natively."""
-    e = Execution(ExecutionConfig(playbook_file='test.yml', playbook_dir=PATH_TEST))
+@pytest.fixture
+def mock_config(mocker, tmp_path: Path):
+    config = mocker.MagicMock(spec=ExecutionConfig)
 
-    log_file = tmp_path / "ansible_stdout.log"
-    e.config.log_stdout_file = log_file
-    e.config.log_file_mode = 0o640
+    config.stats_live = True
+    config.stats_recap = True
+    config.debug = False
+
+    config.log_stdout_file = tmp_path / "ansible_stdout.log"
+    config.load_log_stdout = True
+
+    return config
+
+
+def test_clean_stats_sections_via_status_dynamic_loading(mock_config):
+    """Test that ExecutionStatus skips stats payloads when loading standard output lines."""
 
     original_content = [
         "Normal log line 1\n",
-        f"{SELECTOR_STATS_LIVE_BEGIN}some_live_payload{SELECTOR_STATS_LIVE_END}\n",
+        f"{SELECTOR_STATS_LIVE_BEGIN}{{stats}}{SELECTOR_STATS_LIVE_END}\n",
         "Normal log line 2\n",
-        f"{SELECTOR_STATS_RECAP_BEGIN}some_recap_payload{SELECTOR_STATS_RECAP_END}\n",
+        f"{SELECTOR_STATS_RECAP_BEGIN}{{recap_stats}}{SELECTOR_STATS_RECAP_END}\n",
         "Normal log line 3\n"
     ]
 
-    with open(log_file, "w", encoding="utf-8") as f:
+    with open(mock_config.log_stdout_file, "w", encoding="utf-8") as f:
         f.writelines(original_content)
 
-    e._clean_stats_sections_from_stdout_log_single(SELECTOR_STATS_LIVE_BEGIN)
+    status = ExecutionStatus(mock_config)
 
-    with open(log_file, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-
-    assert len(lines) == 4
-    assert lines[0] == "Normal log line 1\n"
-    assert lines[1] == "Normal log line 2\n"
-    assert lines[2] == f"{SELECTOR_STATS_RECAP_BEGIN}some_recap_payload{SELECTOR_STATS_RECAP_END}\n"
-    assert lines[3] == "Normal log line 3\n"
+    # Without log file marked as cleaned, stdout_lines should skip the stats rows natively
+    lines = status.stdout_lines
+    assert len(lines) == 3
+    assert "Normal log line 1\n" in lines
+    assert "Normal log line 2\n" in lines
+    assert "Normal log line 3\n" in lines
 
 
-def test_clean_stats_sections_from_stdout_log_single_file_not_found(tmp_path: Path):
+def test_clean_stats_sections_bypass_after_cleaned(mock_config):
+    """Test that once set_log_file_cleaned() is called, the raw lines bypass the skip filter."""
+
+    with open(mock_config.log_stdout_file, "w", encoding="utf-8") as f:
+        f.writelines([
+            "Normal log line 1\n",
+            f"{SELECTOR_STATS_LIVE_BEGIN}{{stats}}\n",
+        ])
+
+    status = ExecutionStatus(mock_config)
+
+    # Flag the file as 'cleaned' meaning we want all remaining raw lines unmodified
+    status.set_log_file_cleaned()
+
+    lines = status.stdout_lines
+    assert len(lines) == 2
+    assert f"{SELECTOR_STATS_LIVE_BEGIN}{{stats}}\n" in lines
+
+
+def test_execution_status_graceful_missing_file(mock_config, tmp_path: Path):
     """Test that missing log files are handled gracefully without raising exceptions."""
-    e = Execution(ExecutionConfig(playbook_file='test.yml', playbook_dir=PATH_TEST))
 
-    log_file = tmp_path / "does_not_exist.log"
-    e.config.log_stdout_file = log_file
-    e.config.log_file_mode = 0o640
-
-    e._clean_stats_sections_from_stdout_log_single(SELECTOR_STATS_LIVE_BEGIN)
-
-    assert not log_file.exists()
+    mock_config.log_stdout_file = tmp_path / "does_not_exist.log"
+    status = ExecutionStatus(mock_config)
+    assert status.stdout_lines == []
 
 
 @pytest.mark.parametrize(

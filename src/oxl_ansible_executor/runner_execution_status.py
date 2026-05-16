@@ -1,17 +1,50 @@
 from time import time
 from pathlib import Path
-from json import dumps as json_dumps
+from collections import deque
+from typing import Dict, TypedDict
+from json import loads as json_loads
+from json import dumps as json_dumps, JSONDecodeError
 
+from utils.debug import log
 from utils.subps import ProcessResult
 from runner_config import ExecutionConfig
 from runner_executor_local import ExecutorBase
+from config import SELECTOR_STATS_LIVE_BEGIN, SELECTOR_STATS_RECAP_BEGIN, SELECTOR_STATS_RECAP_END, \
+    SELECTOR_STATS_LIVE_END
 
 
+class AnsiblePlaybookHostStats(TypedDict):
+    ok: int
+    changed: int
+    unreachable: int
+    failures: int
+    skipped: int
+    rescued: int
+    ignored: int
+
+AnsiblePlaybookStats = Dict[str, AnsiblePlaybookHostStats]
+
+ANSIBLE_STATS_CATEGORIES = ['ok', 'changed', 'unreachable', 'failures', 'skipped', 'rescued', 'ignored']
+class AnsiblePlaybookStatsByCategory(TypedDict):
+    ok: dict[str, int]
+    changed: dict[str, int]
+    unreachable: dict[str, int]
+    failures: dict[str, int]
+    skipped: dict[str, int]
+    rescued: dict[str, int]
+    ignored: dict[str, int]
+
+
+# pylint: disable=R0904
 class ExecutionStatus:
     def __init__(self, config: ExecutionConfig):
         self._config: ExecutionConfig = config
         self.time_start = int(time())
         self._executor: ExecutorBase = None
+        self._cache_stdout_lines: (None, list[str]) = None
+        self._cache_stderr_lines: (None, list[str]) = None
+        self._cache_last_stats: (None, dict) = None
+        self._log_stdout_stats_cleaned: bool = False
 
     # todo: use properties to add executor-infos to execution-status
     @property
@@ -77,37 +110,108 @@ class ExecutionStatus:
 
         return self.process_rc != 0
 
+    def _get_last_occurrence_in_logs(self, tail_line_count: int, line_start: str) -> (None, str):
+        have_process_stdout = self.process_result is not None and len(self.process_result.stdout_lines) > 0
+        have_log_file_stdout = self._config.log_stdout_file is not None
+
+        if not have_process_stdout and not have_log_file_stdout:
+            # no data to work with
+            return None
+
+        lines_to_search = []
+        if have_process_stdout:
+            lines_to_search = deque(self.process_result.stdout_lines, maxlen=tail_line_count)
+
+        else:
+            with open(self._config.log_stdout_file, 'r', encoding='utf-8') as file:
+                lines_to_search = deque(file, maxlen=tail_line_count)
+
+        lines_to_search.reverse()
+        for line in lines_to_search:
+            if line.startswith(line_start):
+                return line
+
+        return None
+
     @property
     def playbook_finished(self) -> bool:
-        max_lines_scan = 100
+        # true if:
+        #   ansible-process finished
+        #   neither process-stdout nor log-file are available (no data to work with)
+        #   either process-stdout or log-file have a 'PLAY RECAP'-line
+
         if not self.finished or self.process_result is None:
             return False
 
-        stdout_reversed = self.process_result.stdout_lines.copy()
-        stdout_reversed.reverse()
-        for i, line in enumerate(stdout_reversed):
-            if i > max_lines_scan:
-                break
+        play_recap = self._get_last_occurrence_in_logs(tail_line_count=100, line_start='PLAY RECAP')
+        if play_recap is None:
+            return False
 
-            if line.startswith('PLAY RECAP'):
-                return True
+        return True
 
-        return False
+    # pylint: disable=R0911
+    def _get_last_stats(self) -> (None, dict):
+        if not self._config.stats_live and not self._config.stats_recap:
+            return None
+
+        if self.finished and self._cache_last_stats is not None:
+            # stats do not change once finished
+            return self._cache_last_stats
+
+        if self.finished and self._config.stats_recap:
+            prefix = SELECTOR_STATS_RECAP_BEGIN
+            suffix = SELECTOR_STATS_RECAP_END
+
+        elif self._config.stats_live:
+            prefix = SELECTOR_STATS_LIVE_BEGIN
+            suffix = SELECTOR_STATS_LIVE_END
+
+        else:
+            return None
+
+        last_stats = self._get_last_occurrence_in_logs(tail_line_count=1000, line_start=prefix)
+        if last_stats is None:
+            if self._cache_last_stats is not None:
+                return self._cache_last_stats
+
+            return None
+
+        stats_json = last_stats.strip().removeprefix(prefix).removesuffix(suffix)
+
+        try:
+            stats = json_loads(stats_json)
+            self._cache_last_stats = stats
+            return stats
+
+        except JSONDecodeError as e:
+            if self._config.debug:
+                log(f"Failed to parse stats as JSON: '{stats_json}' => '{e}'")
+
+            if self._cache_last_stats is not None:
+                return self._cache_last_stats
+
+            return None
 
     @property
-    def stats(self) -> dict:
-        # todo: parse 'PLAY RECAP' or do it like the official ansible-executor and parse the streamed output?
-        return {}
+    def stats(self) -> None|AnsiblePlaybookStats:
+        return self._get_last_stats()
 
     @property
-    def stats_by_category(self) -> dict:
-        # todo: group by categories - ok, changed, unreachable, failed, skipped, rescued, ignored
-        return self.stats
+    def stats_by_category(self) -> None|AnsiblePlaybookStatsByCategory:
+        stats_by_host = self.stats
+        if stats_by_host is None:
+            return None
 
-    @property
-    def stats_by_hosts(self) -> dict:
-        # todo: group by hosts
-        return self.stats
+        result: AnsiblePlaybookStatsByCategory = {
+            'ok': {}, 'changed': {}, 'unreachable': {},
+            'failures': {}, 'skipped': {}, 'rescued': {}, 'ignored': {}
+        }
+
+        for host, stats in stats_by_host.items():
+            for category in ANSIBLE_STATS_CATEGORIES:
+                result[category][host] = stats.get(category, 0)
+
+        return result
 
     def time_duration_sec(self) -> int:
         if self.time_finish == -1:
@@ -123,7 +227,99 @@ class ExecutionStatus:
     def log_stderr_file(self) -> (Path, None):
         return self._config.log_stderr_file
 
+    def set_log_file_cleaned(self):
+        self._log_stdout_stats_cleaned = True
+
+    def _load_stdout_lines_from_log_file(self) -> list[str]:
+        if self._cache_stdout_lines is not None:
+            return self._cache_stdout_lines
+
+        skip_line_prefixes = []
+        if self._config.stats_live:
+            skip_line_prefixes.append(SELECTOR_STATS_LIVE_BEGIN)
+
+        if self._config.stats_recap:
+            skip_line_prefixes.append(SELECTOR_STATS_RECAP_BEGIN)
+
+        lines = []
+        if self._config.log_stdout_file is None or not self._config.log_stdout_file.is_file():
+            return lines
+
+        with open(self._config.log_stdout_file, 'r', encoding='utf-8') as log_file:
+            if self._log_stdout_stats_cleaned or len(skip_line_prefixes) == 0:
+                return log_file.readlines()
+
+            for line in log_file:
+                skip = False
+                for skip_prefix in skip_line_prefixes:
+                    if line.startswith(skip_prefix):
+                        skip = True
+                        break
+
+                if skip:
+                    continue
+
+                lines.append(line)
+
+        if self.finished:
+            # log-file does not change after process finished
+            self._cache_stdout_lines = lines
+
+        return lines
+
+    @property
+    def stdout_lines(self) -> (list[str], None):
+        if not self._config.load_log_stdout or self._config.log_stdout_file is None:
+            return None
+
+        return self._load_stdout_lines_from_log_file()
+
+    @property
+    def stdout(self) -> (str, None):
+        stdout_lines = self.stdout_lines
+        if stdout_lines is None:
+            return None
+
+        return '\n'.join(stdout_lines)
+
+    def _load_stderr_lines_from_log_file(self) -> list[str]:
+        if self._cache_stderr_lines is not None:
+            return self._cache_stderr_lines
+
+        lines = []
+        if self._config.log_stderr_file is None or not self._config.log_stderr_file.is_file():
+            return lines
+
+        with open(self._config.log_stderr_file, 'r', encoding='utf-8') as log_file:
+            return log_file.readlines()
+
+    @property
+    def stderr_lines(self) -> (list[str], None):
+        if not self._config.load_log_stderr or self._config.log_stderr_file is None:
+            return None
+
+        return self._load_stderr_lines_from_log_file()
+
+    @property
+    def stderr(self) -> (str, None):
+        stderr_lines = self.stderr_lines
+        if stderr_lines is None:
+            return None
+
+        return '\n'.join(stderr_lines)
+
     def to_dict(self) -> dict:
+        if self.process_result is not None:
+            process_result = self.process_result.to_dict().copy()
+
+        else:
+            process_result = {}
+
+        process_result['stdout_lines'] = self.stdout_lines
+        process_result['stdout'] = self.stdout
+        process_result['stderr_lines'] = self.stderr_lines
+        process_result['stderr'] = self.stderr
+
         return {
             'finished': self.finished,
             'playbook_finished': self.playbook_finished,
@@ -132,13 +328,14 @@ class ExecutionStatus:
             'time_start': self.time_start,
             'time_finish': self.time_finish,
             'timed_out': self.timed_out,
+            'stats': self.stats,
             'time_duration_sec': self.time_duration_sec(),
             'log_stdout_file': str(self.log_stdout_file),
             'log_stderr_file': str(self.log_stderr_file),
             'ansible_command': self.ansible_command,
             'process_command': self.process_command,
             'process_rc': self.process_rc,
-            'process_result': self.process_result.to_dict(),
+            'process_result': process_result,
         }
 
     # pylint: disable=R0801

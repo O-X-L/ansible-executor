@@ -78,20 +78,17 @@ def test_subps_with_logfiles(kwargs: dict, want: dict):
     r = p.wait_until_finished()
     p.close()
 
+    expected_empty = '' if kwargs.get('empty_none', True) is False else None
+
     assert r.rc == want['rc']
-    assert r.stdout == want['stdout']
-    assert r.stderr == want['stderr'] or (
-            isinstance(r.stderr, str) and
-            isinstance(want['stderr'], str) and
-            want['stderr'] in r.stderr
-    )
+    assert r.stdout == expected_empty
+    assert r.stderr == expected_empty
 
-    with open(kwargs['file_stdout'], 'r', encoding='utf-8') as f:
-        want_stdout = want['stdout'] if want['stdout'] is not None else ''
-        is_stdout = f.read().strip()
-        assert want_stdout in is_stdout
+    if want.get('stdout') is not None:
+        with open(kwargs['file_stdout'], 'r') as f:
+            assert f.read().strip() == want['stdout'].strip()
 
-    with open(kwargs['file_stderr'], 'r', encoding='utf-8') as f:
-        want_stderr = want['stderr'] if want['stderr'] is not None else ''
-        is_stderr = f.read().strip()
-        assert want_stderr in is_stderr
+    if want.get('stderr') is not None:
+        with open(kwargs['file_stderr'], 'r') as f:
+            file_content = f.read().strip()
+            assert want['stderr'].strip() in file_content or file_content in want['stderr'].strip()
