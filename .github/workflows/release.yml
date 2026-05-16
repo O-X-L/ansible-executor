@@ -3,9 +3,9 @@
 name: Release on PyPI
 
 on:
-  push:
-    tags:
-      - '*'
+  # push:
+  #   tags:
+  #     - '*'
 
 jobs:
   publish:
