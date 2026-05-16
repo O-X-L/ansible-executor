@@ -3,7 +3,7 @@ from tempfile import mktemp
 
 import pytest
 
-from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
+from oxl_ansible_executor.runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
 
 
 @pytest.mark.parametrize(
@@ -53,9 +53,9 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
     ]
 )
 def test_runner_config_validation_failures(kwargs: dict, mocker):
-    mocker.patch('config.CONTAINER_ENGINES', return_value=('docker', 'podman', 'dummy'))
+    mocker.patch('oxl_ansible_executor.config.CONTAINER_ENGINES', return_value=('docker', 'podman', 'dummy'))
 
-    from runner_config import ExecutionConfig, ConfigError
+    from oxl_ansible_executor.runner_config import ExecutionConfig, ConfigError
 
     with pytest.raises(ConfigError):
         ExecutionConfig(**kwargs)
@@ -88,7 +88,7 @@ def test_runner_config_validation_failures(kwargs: dict, mocker):
     ]
 )
 def test_runner_config_validation_success(kwargs: dict):
-    from runner_config import ExecutionConfig
+    from oxl_ansible_executor.runner_config import ExecutionConfig
 
     ExecutionConfig(**kwargs)
 
@@ -102,7 +102,7 @@ def test_runner_config_validation_success(kwargs: dict):
     ]
 )
 def test_runner_config_ensure_log_files(kwargs: dict):
-    from runner_config import ExecutionConfig
+    from oxl_ansible_executor.runner_config import ExecutionConfig
 
     c = ExecutionConfig(**kwargs)
 
@@ -126,7 +126,7 @@ def test_runner_config_validation_failure_log_file_exists(which_log: str):
     with open(log_file, 'wb') as f:
         f.write(b'')
 
-    from runner_config import ExecutionConfig, ConfigError
+    from oxl_ansible_executor.runner_config import ExecutionConfig, ConfigError
 
     with pytest.raises(ConfigError):
         ExecutionConfig(

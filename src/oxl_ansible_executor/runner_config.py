@@ -4,9 +4,9 @@ from shutil import which as find_executable
 from shlex import split as split_shell_args
 from grp import getgrnam as find_group_by_name
 
-from utils.debug import log
-from exceptions import ConfigError, SetupError
-from config import CONTAINER_ENGINES, FALLBACK_CONTAINER_IMAGE
+from oxl_ansible_executor.utils.debug import log
+from oxl_ansible_executor.exceptions import ConfigError, SetupError
+from oxl_ansible_executor.config import CONTAINER_ENGINES, FALLBACK_CONTAINER_IMAGE
 
 
 class ExecutionConfig:

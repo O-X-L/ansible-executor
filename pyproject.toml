@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "oxl-ansible-executor"
 authors = [
-    {name = "Pascal Rath", email = "rath@oxl.at"},
+    {name = "Pascal Rath", email = "rath+ansibleexecutor@oxl.at"},
 ]
 description = "Simple & Transparent Executor for Ansible-Playbooks"
 readme = "README.md"

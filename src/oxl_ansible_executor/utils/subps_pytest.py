@@ -71,7 +71,7 @@ def run_before_and_after_tests():
     ),
 ])
 def test_subps_with_logfiles(kwargs: dict, want: dict):
-    from utils.subps import ProcessArgs, Process
+    from oxl_ansible_executor.utils.subps import ProcessArgs, Process
     cmd = kwargs.pop('cmd')
     p = Process(cmd=cmd, args=ProcessArgs(**kwargs))
     p.start()

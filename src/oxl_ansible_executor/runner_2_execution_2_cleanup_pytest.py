@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
-from runner_execution import ExecutionConfig, Execution, ExecutionStatus
-from config import SELECTOR_STATS_RECAP_BEGIN, SELECTOR_STATS_LIVE_BEGIN, SELECTOR_STATS_LIVE_END, \
+from oxl_ansible_executor.runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
+from oxl_ansible_executor.runner_execution import ExecutionConfig, Execution, ExecutionStatus
+from oxl_ansible_executor.config import SELECTOR_STATS_RECAP_BEGIN, SELECTOR_STATS_LIVE_BEGIN, SELECTOR_STATS_LIVE_END, \
     SELECTOR_STATS_RECAP_END
 
 

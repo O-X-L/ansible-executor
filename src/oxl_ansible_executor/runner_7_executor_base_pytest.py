@@ -1,8 +1,8 @@
 import pytest
 
-from runner_executor_base import ExecutorBase
-from runner_config import ExecutionConfig
-from config import CALLBACK_PLUGIN_STATS_LIVE, CALLBACK_PLUGIN_STATS_RECAP
+from oxl_ansible_executor.runner_executor_base import ExecutorBase
+from oxl_ansible_executor.runner_config import ExecutionConfig
+from oxl_ansible_executor.config import CALLBACK_PLUGIN_STATS_LIVE, CALLBACK_PLUGIN_STATS_RECAP
 
 
 class DummyExecutor(ExecutorBase):
@@ -86,7 +86,7 @@ def test_wait_for_process_to_finish(executor):
 
 
 def test_process_control_loop_graceful_exit(mocker, executor):
-    mocker.patch('runner_executor_base.time', return_value=100)  # freeze time so it never times out
+    mocker.patch('oxl_ansible_executor.runner_executor_base.time', return_value=100)  # freeze time so it never times out
 
     state = {'calls': 0}
 
@@ -97,7 +97,7 @@ def test_process_control_loop_graceful_exit(mocker, executor):
             executor.process.result.rc = 0
             executor.process.is_alive.return_value = False
 
-    mock_sleep = mocker.patch('runner_executor_base.sleep', side_effect=sleep_side_effect)
+    mock_sleep = mocker.patch('oxl_ansible_executor.runner_executor_base.sleep', side_effect=sleep_side_effect)
 
     executor._process_control_loop()
 
@@ -124,7 +124,7 @@ def test_process_control_loop_timeout_triggered(mocker, executor):
             return time_returns.pop(0)
         return start_time + timeout + 30
 
-    mocker.patch('runner_executor_base.time', side_effect=time_side_effect)
+    mocker.patch('oxl_ansible_executor.runner_executor_base.time', side_effect=time_side_effect)
 
     # Failsafe sleep to prevent the infinite loop and simulate the kill taking effect
     state = {'calls': 0}
@@ -142,7 +142,7 @@ def test_process_control_loop_timeout_triggered(mocker, executor):
             executor.process.result.rc = -9
             executor.process.is_alive.return_value = False
 
-    mocker.patch('runner_executor_base.sleep', side_effect=sleep_side_effect)
+    mocker.patch('oxl_ansible_executor.runner_executor_base.sleep', side_effect=sleep_side_effect)
 
     executor._process_control_loop()
 
@@ -157,7 +157,7 @@ def test_process_control_loop_timeout_triggered(mocker, executor):
 
 
 def test_process_control_loop_external_signal_stop(mocker, executor):
-    mocker.patch('runner_executor_base.time', return_value=1000)
+    mocker.patch('oxl_ansible_executor.runner_executor_base.time', return_value=1000)
 
     # Simulate an external thread setting signal_stop = True before the loop
     executor.signal_stop = True
@@ -171,7 +171,7 @@ def test_process_control_loop_external_signal_stop(mocker, executor):
             executor.process.result.rc = -15
             executor.process.is_alive.return_value = False
 
-    mocker.patch('runner_executor_base.sleep', side_effect=sleep_side_effect)
+    mocker.patch('oxl_ansible_executor.runner_executor_base.sleep', side_effect=sleep_side_effect)
 
     executor._process_control_loop()
 

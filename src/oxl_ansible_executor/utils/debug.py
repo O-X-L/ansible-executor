@@ -3,7 +3,7 @@ from datetime import datetime
 from inspect import stack as inspect_stack
 from inspect import getfile as inspect_getfile
 
-from config import LOG_TIME_FORMAT
+from oxl_ansible_executor.config import LOG_TIME_FORMAT
 
 PID = getpid()
 

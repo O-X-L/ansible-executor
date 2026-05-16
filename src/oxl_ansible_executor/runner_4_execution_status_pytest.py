@@ -1,9 +1,9 @@
 import json
 import pytest
 
-from runner_execution_status import ExecutionStatus
-from runner_config import ExecutionConfig
-from utils.subps import ProcessResult
+from oxl_ansible_executor.runner_execution_status import ExecutionStatus
+from oxl_ansible_executor.runner_config import ExecutionConfig
+from oxl_ansible_executor.utils.subps import ProcessResult
 from config import (
     SELECTOR_STATS_LIVE_BEGIN,
     SELECTOR_STATS_RECAP_BEGIN,
@@ -149,7 +149,7 @@ def test_get_last_stats_invalid_json(mock_config, mock_executor, mocker):
     invalid_json_str = f"{SELECTOR_STATS_RECAP_BEGIN}{{bad_json_payload}}{SELECTOR_STATS_RECAP_END}"
     mock_executor.result.stdout_lines = [invalid_json_str]
 
-    mock_log = mocker.patch("runner_execution_status.log")
+    mock_log = mocker.patch("oxl_ansible_executor.runner_execution_status.log")
 
     stats = status.stats
 

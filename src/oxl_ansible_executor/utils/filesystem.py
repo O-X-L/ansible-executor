@@ -3,8 +3,8 @@ from typing import Callable
 from os import open as open_file
 from os import remove as remove_file
 
-from utils.subps import process
-from utils.util import get_random_str
+from oxl_ansible_executor.utils.subps import process
+from oxl_ansible_executor.utils.util import get_random_str
 
 
 def _open_file_0600(path: (str, Path), flags):

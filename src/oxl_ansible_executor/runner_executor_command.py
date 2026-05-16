@@ -2,7 +2,7 @@ from shlex import quote
 from pathlib import Path
 from json import dumps as json_dumps
 
-from runner_config import ExecutionConfig
+from oxl_ansible_executor.runner_config import ExecutionConfig
 
 
 class AnsibleCommand:

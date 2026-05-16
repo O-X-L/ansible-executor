@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
+from oxl_ansible_executor.runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
 
 
 @pytest.mark.parametrize(
@@ -42,8 +42,8 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
     ]
 )
 def test_runner_executor_generate_command_wo_secrets(kwargs: dict, args: str):
-    from runner_config import ExecutionConfig
-    from runner_executor_command import AnsibleCommand
+    from oxl_ansible_executor.runner_config import ExecutionConfig
+    from oxl_ansible_executor.runner_executor_command import AnsibleCommand
 
     c = ExecutionConfig(**kwargs)
     a = AnsibleCommand(
@@ -59,7 +59,7 @@ def test_runner_executor_generate_command_wo_secrets(kwargs: dict, args: str):
 
 
 def test_runner_executor_generate_command_ssh_agent():
-    from runner_executor_command import wrap_cmd_in_ssh_agent
+    from oxl_ansible_executor.runner_executor_command import wrap_cmd_in_ssh_agent
 
     assert wrap_cmd_in_ssh_agent(
         cmd=['ansible-playbook', '-i', 'inv/test/hosts', '-l', 'srv1,grp2', '-e', '{"test":"test5"}', 'play1.yml'],
@@ -81,8 +81,8 @@ def test_runner_executor_generate_command_ssh_agent():
     ]
 )
 def test_runner_executor_generate_command_with_secrets(kwargs: dict, args: str):
-    from runner_config import ExecutionConfig
-    from runner_executor_command import AnsibleCommand
+    from oxl_ansible_executor.runner_config import ExecutionConfig
+    from oxl_ansible_executor.runner_executor_command import AnsibleCommand
 
     c = ExecutionConfig(**kwargs)
     a = AnsibleCommand(

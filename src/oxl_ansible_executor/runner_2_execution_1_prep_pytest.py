@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
+from oxl_ansible_executor.runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
 
 
 @pytest.mark.parametrize(
@@ -42,7 +42,7 @@ from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
     ]
 )
 def test_runner_execution_before(kwargs: dict, args: str):
-    from runner_execution import ExecutionConfig, Execution
+    from oxl_ansible_executor.runner_execution import ExecutionConfig, Execution
 
     e = Execution(ExecutionConfig(**kwargs))
     e._before()

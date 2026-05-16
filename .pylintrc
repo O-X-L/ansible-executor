@@ -1,5 +1,5 @@
 [MASTER]
-init-hook='import sys; sys.path.extend(["src/oxl_ansible_executor/", "plugins_module/src/oxl_ansible_executor_plugins/"])'
+init-hook='import sys; sys.path.extend(["src/", "plugins_module/src/"])'
 
 [MAIN]
 

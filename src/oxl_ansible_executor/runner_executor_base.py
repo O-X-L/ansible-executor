@@ -5,10 +5,10 @@ from threading import Thread
 from abc import ABC, abstractmethod
 from signal import SIGINT, SIGKILL, SIGTERM
 
-from utils.debug import log
-from utils.subps import ProcessResult
-from runner_config import ExecutionConfig
-from config import CALLBACK_PLUGIN_STATS_LIVE, CALLBACK_PLUGIN_STATS_RECAP, ENV_ANSIBLE_CALLBACKS_ENABLED
+from oxl_ansible_executor.utils.debug import log
+from oxl_ansible_executor.utils.subps import ProcessResult
+from oxl_ansible_executor.runner_config import ExecutionConfig
+from oxl_ansible_executor.config import CALLBACK_PLUGIN_STATS_LIVE, CALLBACK_PLUGIN_STATS_RECAP, ENV_ANSIBLE_CALLBACKS_ENABLED
 
 
 class ExecutorBase(ABC):

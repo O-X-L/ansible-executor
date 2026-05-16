@@ -1,4 +1,4 @@
-from runner_config import ExecutionConfig
+from oxl_ansible_executor.runner_config import ExecutionConfig
 
 
 def test_append_to_list_from_none():

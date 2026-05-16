@@ -1,11 +1,11 @@
 from pathlib import Path
 from shutil import which as find_executable
 
-from utils.subps import Process, ProcessArgs
+from oxl_ansible_executor.utils.subps import Process, ProcessArgs
 
-from config import ENV_ANSIBLE_CALLBACK_PLUGINS
-from runner_executor_base import ExecutorBase
-from runner_executor_command import AnsibleCommand, wrap_cmd_in_ssh_agent
+from oxl_ansible_executor.config import ENV_ANSIBLE_CALLBACK_PLUGINS
+from oxl_ansible_executor.runner_executor_base import ExecutorBase
+from oxl_ansible_executor.runner_executor_command import AnsibleCommand, wrap_cmd_in_ssh_agent
 
 
 class ExecutorLocal(ExecutorBase):

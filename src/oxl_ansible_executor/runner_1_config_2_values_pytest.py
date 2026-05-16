@@ -4,9 +4,9 @@ from os import remove as remove_file
 
 import pytest
 
-from runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
+from oxl_ansible_executor.runner_0_base_pytest import PATH_TEST, run_before_and_after_tests
 
-from config import FALLBACK_CONTAINER_IMAGE
+from oxl_ansible_executor.config import FALLBACK_CONTAINER_IMAGE
 
 
 @pytest.fixture(autouse=True)
@@ -113,7 +113,7 @@ def run_before_and_after_tests2():
     ]
 )
 def test_runner_config_values(kwargs: dict, expected_values: dict):
-    from runner_config import ExecutionConfig
+    from oxl_ansible_executor.runner_config import ExecutionConfig
 
     c = ExecutionConfig(**kwargs)
 

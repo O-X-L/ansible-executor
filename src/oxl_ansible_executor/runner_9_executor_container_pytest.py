@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman, \
+from oxl_ansible_executor.runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman, \
     ExecutorContainer
-from exceptions import ExecutionError
+from oxl_ansible_executor.exceptions import ExecutionError
 
 
 class DummyContainerExecutor(ExecutorContainer):
@@ -43,7 +43,7 @@ def mock_config(mocker):
 def mock_ansible_cmd(mocker):
     # Auto-mock AnsibleCommand globally for these tests so _engine_init doesn't crash 
     # trying to validate missing paths or configurations.
-    return mocker.patch('runner_executor_container.AnsibleCommand')
+    return mocker.patch('oxl_ansible_executor.runner_executor_container.AnsibleCommand')
 
 
 def test_build_container_volumes(mock_config):
@@ -88,7 +88,7 @@ def test_build_paths_inside_container(mock_config):
 
 
 def test_write_env_var_file(mocker, mock_config):
-    mock_write = mocker.patch('runner_executor_container.write_file_with_mode')
+    mock_write = mocker.patch('oxl_ansible_executor.runner_executor_container.write_file_with_mode')
     mock_config.env_vars = {'TEST_ENV=': 'val1', 'OTHER': 'val2'}
 
     executor = ExecutorContainerDocker(config=mock_config, run_id='123')
@@ -178,7 +178,7 @@ def test_generate_engine_command_podman(mocker, mock_config):
 
 
 def test_build_engine_executable_found(mocker, mock_config):
-    mock_find_executable = mocker.patch('runner_executor_container.find_executable')
+    mock_find_executable = mocker.patch('oxl_ansible_executor.runner_executor_container.find_executable')
     mock_find_executable.return_value = '/usr/bin/dummy-engine'
 
     executor = DummyContainerExecutor(config=mock_config, run_id='test1')
@@ -189,7 +189,7 @@ def test_build_engine_executable_found(mocker, mock_config):
 
 
 def test_build_engine_executable_not_found(mocker, mock_config):
-    mocker.patch('runner_executor_container.find_executable', return_value=None)
+    mocker.patch('oxl_ansible_executor.runner_executor_container.find_executable', return_value=None)
 
     executor = DummyContainerExecutor(config=mock_config, run_id='test1')
     executable = executor._build_engine_executable()
@@ -224,7 +224,7 @@ def test_engine_init_success(mocker, mock_config, mock_ansible_cmd):
 
 
 def test_prepare_container_image_pull(mocker, mock_config):
-    mock_process = mocker.patch('runner_executor_container.process')
+    mock_process = mocker.patch('oxl_ansible_executor.runner_executor_container.process')
 
     mock_chk = mocker.MagicMock()
     mock_chk.stdout = '1234567890'  # Implies image is found
@@ -247,7 +247,7 @@ def test_prepare_container_image_pull(mocker, mock_config):
 
 
 def test_prepare_container_image_pull_failure(mocker, mock_config):
-    mock_process = mocker.patch('runner_executor_container.process')
+    mock_process = mocker.patch('oxl_ansible_executor.runner_executor_container.process')
 
     mock_chk = mocker.MagicMock()
     mock_chk.stdout = None  # Image does not exist locally
@@ -265,7 +265,7 @@ def test_prepare_container_image_pull_failure(mocker, mock_config):
 
 
 def test_send_signal_to_ansible(mocker, mock_config):
-    mock_process = mocker.patch('runner_executor_container.process')
+    mock_process = mocker.patch('oxl_ansible_executor.runner_executor_container.process')
 
     executor = ExecutorContainerDocker(config=mock_config, run_id='123')
     executor.engine_executable = 'docker'
@@ -278,7 +278,7 @@ def test_send_signal_to_ansible(mocker, mock_config):
 
 
 def test_create_process(mocker, mock_config):
-    mock_process_class = mocker.patch('runner_executor_container.Process')
+    mock_process_class = mocker.patch('oxl_ansible_executor.runner_executor_container.Process')
 
     executor = ExecutorContainerDocker(config=mock_config, run_id='123')
     executor._create_process(['dummy', 'cmd'])

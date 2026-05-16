@@ -5,10 +5,10 @@ from typing import Dict, TypedDict
 from json import loads as json_loads
 from json import dumps as json_dumps, JSONDecodeError
 
-from utils.debug import log
-from runner_config import ExecutionConfig
-from runner_executor_local import ExecutorBase
-from config import SELECTOR_STATS_LIVE_BEGIN, SELECTOR_STATS_RECAP_BEGIN, SELECTOR_STATS_RECAP_END, \
+from oxl_ansible_executor.utils.debug import log
+from oxl_ansible_executor.runner_config import ExecutionConfig
+from oxl_ansible_executor.runner_executor_local import ExecutorBase
+from oxl_ansible_executor.config import SELECTOR_STATS_LIVE_BEGIN, SELECTOR_STATS_RECAP_BEGIN, SELECTOR_STATS_RECAP_END, \
     SELECTOR_STATS_LIVE_END
 
 

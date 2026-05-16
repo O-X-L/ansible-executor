@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from runner_executor_local import ExecutorLocal
-from config import ENV_ANSIBLE_CALLBACK_PLUGINS
+from oxl_ansible_executor.runner_executor_local import ExecutorLocal
+from oxl_ansible_executor.config import ENV_ANSIBLE_CALLBACK_PLUGINS
 
 
 @pytest.fixture
@@ -24,11 +24,11 @@ def mock_config(mocker):
 @pytest.fixture(autouse=True)
 def mock_ansible_cmd(mocker):
     # Auto-mock AnsibleCommand globally so instantiating ExecutorLocal doesn't execute real command generation
-    return mocker.patch('runner_executor_local.AnsibleCommand')
+    return mocker.patch('oxl_ansible_executor.runner_executor_local.AnsibleCommand')
 
 
 def test_build_engine_executable_found(mocker):
-    mock_find_executable = mocker.patch('runner_executor_local.find_executable')
+    mock_find_executable = mocker.patch('oxl_ansible_executor.runner_executor_local.find_executable')
     mock_find_executable.return_value = '/usr/local/bin/ansible-playbook'
 
     executable = ExecutorLocal._build_engine_executable()
@@ -38,7 +38,7 @@ def test_build_engine_executable_found(mocker):
 
 
 def test_build_engine_executable_not_found(mocker):
-    mocker.patch('runner_executor_local.find_executable', return_value=None)
+    mocker.patch('oxl_ansible_executor.runner_executor_local.find_executable', return_value=None)
 
     executable = ExecutorLocal._build_engine_executable()
 
@@ -92,7 +92,7 @@ def test_generate_engine_command_without_ssh_key(mock_config):
 
 def test_generate_engine_command_with_ssh_key(mocker, mock_config):
     mock_config._ssh_key = 'some-key-content'
-    mock_wrap = mocker.patch('runner_executor_local.wrap_cmd_in_ssh_agent')
+    mock_wrap = mocker.patch('oxl_ansible_executor.runner_executor_local.wrap_cmd_in_ssh_agent')
     mock_wrap.return_value = ['ssh-agent', 'bash', '-c', 'ansible-playbook playbook.yml']
 
     executor = ExecutorLocal(config=mock_config, run_id='123')
@@ -116,8 +116,8 @@ def test_prepare_engine(mock_config):
 
 
 def test_create_process(mocker, mock_config):
-    mock_process_class = mocker.patch('runner_executor_local.Process')
-    mock_process_args_class = mocker.patch('runner_executor_local.ProcessArgs')
+    mock_process_class = mocker.patch('oxl_ansible_executor.runner_executor_local.Process')
+    mock_process_args_class = mocker.patch('oxl_ansible_executor.runner_executor_local.ProcessArgs')
 
     mock_process_args_instance = mocker.MagicMock()
     mock_process_args_class.return_value = mock_process_args_instance

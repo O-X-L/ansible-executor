@@ -6,17 +6,17 @@ from tempfile import mkdtemp
 from time import time, sleep
 from shutil import chown, rmtree
 
-from runner_config import ExecutionConfig
-from exceptions import PreparationError
-from runner_executor_local import ExecutorBase, ExecutorLocal
-from runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman
-from utils.debug import log
-from utils.util import get_random_str
-from utils.filesystem import write_file_with_mode, overwrite_and_delete_file, get_file_opener_from_mode
-from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, DEFAULT_LOG_DIR, SELECTOR_STATS_RECAP_BEGIN, \
+from oxl_ansible_executor.runner_config import ExecutionConfig
+from oxl_ansible_executor.exceptions import PreparationError
+from oxl_ansible_executor.runner_executor_local import ExecutorBase, ExecutorLocal
+from oxl_ansible_executor.runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman
+from oxl_ansible_executor.utils.debug import log
+from oxl_ansible_executor.utils.util import get_random_str
+from oxl_ansible_executor.utils.filesystem import write_file_with_mode, overwrite_and_delete_file, get_file_opener_from_mode
+from oxl_ansible_executor.config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, DEFAULT_LOG_DIR, SELECTOR_STATS_RECAP_BEGIN, \
     SELECTOR_STATS_LIVE_BEGIN
 
-from runner_execution_status import ExecutionStatus
+from oxl_ansible_executor.runner_execution_status import ExecutionStatus
 
 
 def _write_secret_to_pipe(file: str, secret: str):
