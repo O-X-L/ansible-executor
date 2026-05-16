@@ -1,0 +1,52 @@
+---
+
+name: Release on PyPI
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install build dependencies
+        run: |
+          pip install -r requirements_build.txt >/dev/null
+          pip install -r requirements.txt >/dev/null
+
+      - name: Extract tag name
+        id: version
+        run: echo ::set-output name=TAG_NAME::$(echo $GITHUB_REF | cut -d / -f 3 | cut -c 1-)
+
+      - name: Building
+        run: |
+          git reset --hard
+          cd plugins_module/
+          echo "${{ steps.version.outputs.TAG_NAME }}" > VERSION
+          python3 -m build
+        env:
+          PYTHONUNBUFFERED: 1
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN_PLUGINS }}
+          packages-dir: plugins_module/
