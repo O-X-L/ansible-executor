@@ -123,7 +123,7 @@ class ExecutionStatus:
         return self.process_rc != 0
 
     def _get_last_occurrence_in_logs(self, tail_line_count: int, line_start: str) -> (None, str):
-        have_process_stdout = self.process_result is not None and len(self.process_result['stdout_lines']) > 0
+        have_process_stdout = self._executor.result is not None and len(self._executor.result.stdout_lines) > 0
         have_log_file_stdout = self._config.log_stdout_file is not None
 
         if not have_process_stdout and not have_log_file_stdout:
@@ -132,7 +132,7 @@ class ExecutionStatus:
 
         lines_to_search = []
         if have_process_stdout:
-            lines_to_search = deque(self.process_result['stdout_lines'], maxlen=tail_line_count)
+            lines_to_search = deque(self._executor.result.stdout_lines, maxlen=tail_line_count)
 
         else:
             with open(self._config.log_stdout_file, 'r', encoding='utf-8') as file:
@@ -171,10 +171,12 @@ class ExecutionStatus:
             return self._cache_last_stats
 
         if self.finished and self._config.stats_recap:
+            description = 'Recap-stats'
             prefix = SELECTOR_STATS_RECAP_BEGIN
             suffix = SELECTOR_STATS_RECAP_END
 
         elif self._config.stats_live:
+            description = 'Live-stats'
             prefix = SELECTOR_STATS_LIVE_BEGIN
             suffix = SELECTOR_STATS_LIVE_END
 
@@ -189,6 +191,8 @@ class ExecutionStatus:
             return None
 
         stats_json = last_stats.strip().removeprefix(prefix).removesuffix(suffix)
+        if self._config.debug:
+            log(f"Last {description} from logs: '{stats_json}'")
 
         try:
             stats = json_loads(stats_json)

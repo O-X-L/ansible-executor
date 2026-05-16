@@ -66,13 +66,13 @@ def test_get_last_occurrence_in_logs_process_stdout(mock_config, mock_executor):
     status = ExecutionStatus(mock_config)
     status.executor = mock_executor
 
-    status._cache_process_result = {'stdout_lines': [
+    mock_executor.result.stdout_lines = [
         "line 1",
         "PREFIX: found first",
         "line 3",
         "PREFIX: found last",
         "line 5"
-    ]}
+    ]
 
     res = status._get_last_occurrence_in_logs(10, "PREFIX:")
     assert res == "PREFIX: found last"
@@ -94,11 +94,11 @@ def test_playbook_finished(mock_config, mock_executor):
     status.executor = mock_executor
 
     # Test success
-    status._cache_process_result = {'stdout_lines': ["PLAY RECAP **********", "host1: ok=1"]}
+    mock_executor.result.stdout_lines = ["PLAY RECAP **********", "host1: ok=1"]
     assert status.playbook_finished is True
 
     # Test unfound recap
-    status._cache_process_result = {'stdout_lines': ["Running task...", "Task success"]}
+    mock_executor.result.stdout_lines = ["Running task...", "Task success"]
 
 
 def test_get_last_stats_valid_json(mock_config, mock_executor):
@@ -109,7 +109,7 @@ def test_get_last_stats_valid_json(mock_config, mock_executor):
     stats_dict = {"host1": {"ok": 2, "changed": 1}}
     stats_json_str = f"{SELECTOR_STATS_RECAP_BEGIN}{json.dumps(stats_dict)}{SELECTOR_STATS_RECAP_END}"
 
-    status._cache_process_result = {'stdout_lines': ["log 1", stats_json_str, "log 2"]}
+    mock_executor.result.stdout_lines = ["log 1", stats_json_str, "log 2"]
 
     stats = status.stats
     assert stats == stats_dict
@@ -125,7 +125,7 @@ def test_get_last_stats_invalid_json(mock_config, mock_executor, mocker):
     status.executor = mock_executor
 
     invalid_json_str = f"{SELECTOR_STATS_RECAP_BEGIN}{{bad_json_payload}}{SELECTOR_STATS_RECAP_END}"
-    status._cache_process_result = {'stdout_lines': [invalid_json_str]}
+    mock_executor.result.stdout_lines = [invalid_json_str]
 
     mock_log = mocker.patch("runner_execution_status.log")
 
@@ -133,7 +133,6 @@ def test_get_last_stats_invalid_json(mock_config, mock_executor, mocker):
 
     # Should catch JSONDecodeError, fallback to None, and log exception
     assert stats is None
-    mock_log.assert_called_once()
     assert "Failed to parse stats as JSON" in mock_log.call_args[0][0]
 
 
@@ -146,9 +145,9 @@ def test_stats_by_category(mock_config, mock_executor):
         "host1": {"ok": 2, "changed": 1},
         "host2": {"failures": 1}
     }
-    status._cache_process_result = {'stdout_lines': [
+    mock_executor.result.stdout_lines = [
         f"{SELECTOR_STATS_RECAP_BEGIN}{json.dumps(stats_dict)}{SELECTOR_STATS_RECAP_END}"
-    ]}
+    ]
 
     cat_stats = status.stats_by_category
     assert cat_stats['ok']['host1'] == 2
