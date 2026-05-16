@@ -134,12 +134,18 @@ c = ExecutionConfig(
 e = Execution(c)
 
 e.run(blocking=True)
-# [INFO] Creating log-files
-# [INFO] Using executor: local
-# [INFO] Creating secret-pipes
-# [INFO] Using log files: /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stdout.log & /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stderr.log
-# [INFO] Executing ansible-playbook
-# [INFO] Command: ['ssh-agent', 'sh', '-c', 'ssh-add /tmp/ar_znjp4bih/.fIWqfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --become-pass-file /tmp/ar_znjp4bih/.SHVTBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwGY8BnyF2 syslog.yml']
+# [DEBUG] Using executor: local
+# [DEBUG] Creating log-files
+# [DEBUG] Creating secret-pipes
+# [DEBUG] Using log files: /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stdout.log & /home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stderr.log
+# [DEBUG] Executing ansible-playbook
+# [DEBUG] Command: ['ssh-agent', 'sh', '-c', 'ssh-add /tmp/ar_znjp4bih/.fIWqfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --become-pass-file /tmp/ar_znjp4bih/.SHVTBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwGY8BnyF2 syslog.yml']
+# [DEBUG] Process finished
+# [DEBUG] Process exit-code: 0
+# [DEBUG] Process finished
+# [DEBUG] Process exit-code: 0
+# [DEBUG] Post-execution tasks
+# [DEBUG] Cleaning stats-sections from log-files
 
 print(e.status)
 # {
@@ -151,6 +157,17 @@ print(e.status)
 #   "time_finish": 1775500783,
 #   "timed_out": false,
 #   "time_duration_sec": 25,
+#   "stats": {
+#     "srv1": {
+#       "ok": 7,
+#       "failures": 0,
+#       "unreachable": 0,
+#       "changed": 1,
+#       "skipped": 0,
+#       "rescued": 0,
+#       "ignored": 0
+#     }
+#   },
 #   "log_stdout_file": "/home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stdout.log",
 #   "log_stderr_file": "/home/demo/.local/share/oxl-ansible-executor/ansible_1775500760_lhWOT_stderr.log",
 #   "ansible_command": [
