@@ -1,4 +1,4 @@
-# Ansible Runner minimal
+# Ansible-Playbook Executor
 
 <p align="center">
     <a title="Support this Project (Donate, Support-Licenses)" href="https://shop.oxl.app/collections/open-source">
@@ -26,6 +26,8 @@ The scope of this project is it to create a simple and transparent Python3-inter
 It will focus on using docker or podman to execute ansible in an isolated environment. But local execution will also be available.
 
 The implementation will be opinionated and will have a 'narrow' interface.
+
+Source code: [oxl-ansible-executor](https://github.com/O-X-L/ansible-executor) & [oxl-ansible-executor-plugins](https://github.com/O-X-L/ansible-executor/tree/latest/plugins_module)
 
 ### Motivation
 
