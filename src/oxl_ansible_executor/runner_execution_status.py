@@ -21,7 +21,7 @@ class AnsiblePlaybookHostStats(TypedDict):
     rescued: int
     ignored: int
 
-AnsiblePlaybookStats = Dict[str, AnsiblePlaybookHostStats]
+AnsiblePlaybookStatsByHost = Dict[str, AnsiblePlaybookHostStats]
 
 ANSIBLE_STATS_CATEGORIES = ['ok', 'changed', 'unreachable', 'failures', 'skipped', 'rescued', 'ignored']
 class AnsiblePlaybookStatsByCategory(TypedDict):
@@ -161,6 +161,29 @@ class ExecutionStatus:
 
         return True
 
+    @staticmethod
+    def _build_valid_stats(unverified_stats: dict) -> AnsiblePlaybookStatsByHost:
+        valid_stats = {}
+        if not isinstance(unverified_stats, dict):
+            return valid_stats
+
+        for host, host_stats in unverified_stats.items():
+            if not isinstance(host, str) or not isinstance(host_stats, dict):
+                continue
+
+            any_valid = False
+            valid_host_stats = {}
+            for category in ANSIBLE_STATS_CATEGORIES:
+                value = host_stats.get(category, 0)
+                valid_host_stats[category] = value
+                if value != 0:
+                    any_valid = True
+
+            if any_valid:
+                valid_stats[host] = valid_host_stats
+
+        return valid_stats
+
     # pylint: disable=R0911
     def _get_last_stats(self) -> (None, dict):
         if not self._config.stats_live and not self._config.stats_recap:
@@ -195,7 +218,7 @@ class ExecutionStatus:
             log(f"Last {description} from logs: '{stats_json}'")
 
         try:
-            stats = json_loads(stats_json)
+            stats = self._build_valid_stats(json_loads(stats_json))
             self._cache_last_stats = stats
             return stats
 
@@ -209,7 +232,7 @@ class ExecutionStatus:
             return None
 
     @property
-    def stats(self) -> None|AnsiblePlaybookStats:
+    def stats(self) -> None|AnsiblePlaybookStatsByHost:
         return self._get_last_stats()
 
     @property
@@ -223,9 +246,9 @@ class ExecutionStatus:
             'failures': {}, 'skipped': {}, 'rescued': {}, 'ignored': {}
         }
 
-        for host, stats in stats_by_host.items():
+        for host, host_stats in stats_by_host.items():
             for category in ANSIBLE_STATS_CATEGORIES:
-                result[category][host] = stats.get(category, 0)
+                result[category][host] = host_stats.get(category, 0)
 
         return result
 

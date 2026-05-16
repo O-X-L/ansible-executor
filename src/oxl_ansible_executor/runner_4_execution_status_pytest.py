@@ -101,12 +101,34 @@ def test_playbook_finished(mock_config, mock_executor):
     mock_executor.result.stdout_lines = ["Running task...", "Task success"]
 
 
+def test_build_valid_stats(mock_config, mock_executor):
+    mock_config.stats_recap = True
+    status = ExecutionStatus(mock_config)
+    status.executor = mock_executor
+
+    want_host1 = {"host1": {
+        "ok": 2, "changed": 1, "failures": 0, "unreachable": 0, "ignored": 0, "skipped": 0, "rescued": 0,
+    }}
+
+    # valid input - fill missing keys with zeros
+    unverified_stats = {"host1": {"ok": 2, "changed": 1}}
+    valid_stats = status._build_valid_stats(unverified_stats)
+    assert valid_stats == want_host1
+
+    # invalid input - skip random data
+    unverified_stats = {"host1": {"ok": 2, "changed": 1}, "host2": {"bad_data": 1}, "yes": True}
+    valid_stats = status._build_valid_stats(unverified_stats)
+    assert valid_stats == want_host1
+
+
 def test_get_last_stats_valid_json(mock_config, mock_executor):
     mock_config.stats_recap = True
     status = ExecutionStatus(mock_config)
     status.executor = mock_executor
 
-    stats_dict = {"host1": {"ok": 2, "changed": 1}}
+    stats_dict = {"host1": {
+        "ok": 2, "changed": 1, "failures": 0, "unreachable": 0, "ignored": 0, "skipped": 0, "rescued": 0,
+    }}
     stats_json_str = f"{SELECTOR_STATS_RECAP_BEGIN}{json.dumps(stats_dict)}{SELECTOR_STATS_RECAP_END}"
 
     mock_executor.result.stdout_lines = ["log 1", stats_json_str, "log 2"]

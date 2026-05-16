@@ -9,4 +9,4 @@ from exceptions import ConfigError, SetupError, PreparationError, ExecutionError
 from utils.subps import ProcessResult
 from runner_execution import Execution
 from runner_config import ExecutionConfig
-from runner_execution_status import ExecutionStatus
+from runner_execution_status import ExecutionStatus, AnsiblePlaybookStatsByHost, AnsiblePlaybookStatsByCategory
