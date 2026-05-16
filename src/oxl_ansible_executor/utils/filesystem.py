@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Callable
 from os import open as open_file
 from os import remove as remove_file
 
@@ -29,10 +30,14 @@ def _open_file_0664(path: (str, Path), flags):
 FILE_WRITE_MODES = {
     0o600: _open_file_0600,
     0o640: _open_file_0640,
-    0o644: _open_file_0640,
+    0o644: _open_file_0644,
     0o660: _open_file_0660,
     0o664: _open_file_0664,
 }
+
+def get_file_opener_from_mode(file_mode: int) -> Callable:
+    return FILE_WRITE_MODES.get(file_mode, _open_file_0640)
+
 
 def write_file_with_mode(file: (str, Path), content: str, file_mode: int):
     file = Path(file)
@@ -43,7 +48,7 @@ def write_file_with_mode(file: (str, Path), content: str, file_mode: int):
     if file.is_file():
         mode = 'a'
 
-    opener = FILE_WRITE_MODES.get(file_mode, _open_file_0640)
+    opener = get_file_opener_from_mode(file_mode)
 
     with open(file, mode, encoding='utf-8', opener=opener) as _file:
         _file.write(content)

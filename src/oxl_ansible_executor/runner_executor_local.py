@@ -3,6 +3,7 @@ from shutil import which as find_executable
 
 from utils.subps import Process, ProcessArgs
 
+from config import ENV_ANSIBLE_CALLBACK_PLUGINS
 from runner_executor_base import ExecutorBase
 from runner_executor_command import AnsibleCommand, wrap_cmd_in_ssh_agent
 
@@ -44,7 +45,30 @@ class ExecutorLocal(ExecutorBase):
         return cmd
 
     def _prepare_engine(self):
-        pass
+        if self.config.stats_recap or self.config.stats_live:
+            self._add_stats_plugins_path()
+
+    def _add_stats_plugins_path(self):
+        try:
+            # pylint: disable=C0415
+            from oxl_ansible_executor_plugins import get_path_callback
+
+        except (ImportError, ModuleNotFoundError):
+            return
+
+        path_stats_callback = get_path_callback()
+        ansible_callback_paths = []
+        if self.config.env_vars is not None and ENV_ANSIBLE_CALLBACK_PLUGINS in self.config.env_vars:
+            ansible_callback_paths = self.config.env_vars[ENV_ANSIBLE_CALLBACK_PLUGINS].split(':')
+
+        if path_stats_callback not in ansible_callback_paths:
+            ansible_callback_paths.append(path_stats_callback)
+
+        self.config.env_vars = self.config.add_to_dict(
+            self.config.env_vars,
+            key=ENV_ANSIBLE_CALLBACK_PLUGINS,
+            value=':'.join(ansible_callback_paths),
+        )
 
     def _create_process(self, cmd: list[str]):
         process_args = ProcessArgs(

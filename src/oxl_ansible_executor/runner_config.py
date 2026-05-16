@@ -168,6 +168,17 @@ class ExecutionConfig:
         debug:
             Whether the executor should print some debug-output to stdout.
 
+        stats_live:
+            Requires the 'oxl-ansible-executor-plugins' to be installed inside the execution venv/container!
+            Whether the executor should fetch ansible-stats in realtime (every 10s) while ansible executes to populate
+            'ExecutionStatus.stats*'. This can be useful if you have long-running playbooks and want to react to
+            failures etc.
+
+        stats_recap:
+            Requires the 'oxl-ansible-executor-plugins' to be installed inside the execution venv/container!
+            Whether the executor should fetch ansible-stats at the end of ansible executions to populate
+            'ExecutionStatus.stats*'.
+
         containerized:
             Whether to execute ansible inside a container.
             It has security benefits to do so.
@@ -233,6 +244,14 @@ class ExecutionConfig:
             The group that should be set as log-file owner.
             Integer (gid) or string (group-name)
 
+        load_log_stdout:
+            Whether the output of the ansible-process should be loaded from the log-file when the execution finished to
+            populate "ExecutionStatus.stdout". Depending on your ansible-playbook and -inventory this
+            might require 'much' memory.
+
+        load_log_stderr:
+            Whether the error-output of the ansible-process should be loaded from the log-file when the execution
+            finished to populate "ExecutionStatus.stderr".
     """
     def __init__(
             self,
@@ -272,6 +291,9 @@ class ExecutionConfig:
             ssh_known_hosts_file: str|Path = None,
 
             debug: bool = False,
+            stats_live: bool = False,
+            stats_recap: bool = True,
+
             containerized: bool = False,
             container_engine: str = None,
             container_image: str = None,
@@ -285,6 +307,8 @@ class ExecutionConfig:
             log_stderr_file: str|Path = None,
             log_file_mode: int = 0o640,
             log_file_owner_group: str|int = None,
+            load_log_stdout: bool = False,
+            load_log_stderr: bool = False,
     ):
         self.playbook_dir: Path = self._build_playbook_dir(playbook_dir=playbook_dir, playbook_file=playbook_file)
         self.playbook_file: (str, Path) = self._build_playbook_file(playbook_file)
@@ -335,6 +359,8 @@ class ExecutionConfig:
         self.ssh_known_hosts_file: (str, Path, None) = ssh_known_hosts_file
 
         self.debug: bool = debug
+        self.stats_live: bool = stats_live
+        self.stats_recap: bool = stats_recap
         self.containerized: bool = containerized
         self.container_engine: str = self._build_container_engine(
             containerized=containerized,
@@ -357,6 +383,8 @@ class ExecutionConfig:
             which_log='stderr',
             file=log_stderr_file,
         )
+        self.load_log_stdout: bool = load_log_stdout
+        self.load_log_stderr: bool = load_log_stderr
 
         self.validate()
 
@@ -681,7 +709,10 @@ class ExecutionConfig:
             raise ConfigError(f"Got bad type for '{which_var}' : {type(path)} (should be str or Path)")
 
     def _validate_bools(self):
-        for attr in ['mode_check', 'mode_diff', 'containerized', 'output_color', 'debug', 'container_image_pull']:
+        for attr in [
+            'mode_check', 'mode_diff', 'containerized', 'output_color', 'debug', 'container_image_pull',
+            'stats_live', 'stats_recap', 'load_log_stdout', 'load_log_stderr',
+        ]:
             value = getattr(self, attr)
             if not isinstance(value, bool):
                 raise ConfigError(f"Got bad type for '{attr}': '{type(value)}' (should be bool)")

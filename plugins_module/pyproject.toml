@@ -37,4 +37,4 @@ include = ["oxl_ansible_executor_plugins", "oxl_ansible_executor_plugins.*"]
 "*" = []
 
 [project.scripts]
-oxl-ansible-executor-plugins-callback = "oxl_ansible_executor_plugins.__script__:get_path_callback"
+oxl-ansible-executor-plugins-callback = "oxl_ansible_executor_plugins.__script__:print_path_callback"

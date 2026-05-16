@@ -1,9 +1,8 @@
-from pathlib import Path
-
 import pytest
 
 from runner_executor_base import ExecutorBase
 from runner_config import ExecutionConfig
+from config import CALLBACK_PLUGIN_STATS_LIVE, CALLBACK_PLUGIN_STATS_RECAP
 
 
 class DummyExecutor(ExecutorBase):
@@ -32,6 +31,14 @@ def mock_config(mocker):
     config.debug = False
     config.env_vars = {}
     config.output_color = False
+    config.stats_live = False
+    config.stats_recap = True
+
+    def mock_add_to_dict(d: dict, key: str, value: str):
+        d[key] = value
+        return d
+
+    config.add_to_dict.side_effect = mock_add_to_dict
 
     return config
 
@@ -171,3 +178,46 @@ def test_process_control_loop_external_signal_stop(mocker, executor):
     # Even though we didn't time out, signal_stop was True, so it should send termination signals
     assert executor.timed_out is False
     assert executor.mock_sent_signals == [2, 9]
+
+
+@pytest.mark.parametrize(
+    'initial_callbacks, stats_live, stats_recap, expected_callbacks',
+    [
+        # 1. No existing callbacks in env_vars
+        (None, False, True, [CALLBACK_PLUGIN_STATS_RECAP]),
+        (None, True, False, [CALLBACK_PLUGIN_STATS_LIVE]),
+        (None, True, True, [CALLBACK_PLUGIN_STATS_RECAP, CALLBACK_PLUGIN_STATS_LIVE]),
+        (None, False, False, []),
+
+        # 2. Existing callbacks in env_vars (single)
+        ('profile_tasks', False, True, ['profile_tasks', CALLBACK_PLUGIN_STATS_RECAP]),
+        ('profile_tasks', True, False, ['profile_tasks', CALLBACK_PLUGIN_STATS_LIVE]),
+        ('profile_tasks', True, True, ['profile_tasks', CALLBACK_PLUGIN_STATS_RECAP, CALLBACK_PLUGIN_STATS_LIVE]),
+
+        # 3. Existing callbacks in env_vars (multiple)
+        ('profile_tasks,timer', True, True,
+         ['profile_tasks', 'timer', CALLBACK_PLUGIN_STATS_RECAP, CALLBACK_PLUGIN_STATS_LIVE]),
+    ]
+)
+def test_enable_stats_plugins(executor, initial_callbacks, stats_live, stats_recap, expected_callbacks):
+    """Test that ansible callback plugins are accurately appended to the environment variables."""
+
+    if initial_callbacks is not None:
+        executor.config.env_vars['ANSIBLE_CALLBACKS_ENABLED'] = initial_callbacks
+
+    executor.config.stats_live = stats_live
+    executor.config.stats_recap = stats_recap
+
+    # Run the method
+    executor._enable_stats_plugins()
+
+    # Validate the environment variables were updated correctly
+    actual_callbacks = executor.config.env_vars.get('ANSIBLE_CALLBACKS_ENABLED', '')
+
+    if not expected_callbacks:
+        assert actual_callbacks == ''
+    else:
+        assert actual_callbacks == ','.join(expected_callbacks)
+
+    # Ensure config.add_to_dict was actually called to perform the assignment
+    executor.config.add_to_dict.assert_called_once()

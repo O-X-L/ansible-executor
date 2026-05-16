@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from runner_executor_local import ExecutorLocal
+from config import ENV_ANSIBLE_CALLBACK_PLUGINS
 
 
 @pytest.fixture
@@ -150,3 +151,73 @@ def test_send_signal_to_ansible(mocker, mock_config):
     executor._send_signal_to_ansible(15)
 
     executor.process.send_signal.assert_called_once_with(15)
+
+
+def test_add_stats_plugins_path_import_error(mocker, mock_config):
+    # Simulate missing oxl_ansible_executor_plugins module
+    mocker.patch.dict('sys.modules', {'oxl_ansible_executor_plugins': None})
+
+    executor = ExecutorLocal(config=mock_config, run_id='123')
+    executor.config.env_vars = {}
+
+    executor._add_stats_plugins_path()
+
+    # Ensuring add_to_dict was aborted/never called
+    executor.config.add_to_dict.assert_not_called()
+
+
+def test_add_stats_plugins_path_empty_env(mocker, mock_config):
+    # Mock the plugin module and its method
+    mock_plugins_module = mocker.MagicMock()
+    mock_plugins_module.get_path_callback.return_value = '/custom/stats/path'
+    mocker.patch.dict('sys.modules', {'oxl_ansible_executor_plugins': mock_plugins_module})
+
+    executor = ExecutorLocal(config=mock_config, run_id='123')
+    executor.config.env_vars = {}
+
+    executor._add_stats_plugins_path()
+
+    # Check that add_to_dict was called with the correct parameters
+    executor.config.add_to_dict.assert_called_once_with(
+        {},
+        key=ENV_ANSIBLE_CALLBACK_PLUGINS,
+        value='/custom/stats/path'
+    )
+
+
+def test_add_stats_plugins_path_existing_env(mocker, mock_config):
+    mock_plugins_module = mocker.MagicMock()
+    mock_plugins_module.get_path_callback.return_value = '/custom/stats/path'
+    mocker.patch.dict('sys.modules', {'oxl_ansible_executor_plugins': mock_plugins_module})
+
+    executor = ExecutorLocal(config=mock_config, run_id='123')
+    existing_env = {ENV_ANSIBLE_CALLBACK_PLUGINS: '/existing/path'}
+    executor.config.env_vars = existing_env.copy()
+
+    executor._add_stats_plugins_path()
+
+    # Path should be appended using a colon
+    executor.config.add_to_dict.assert_called_once_with(
+        existing_env,
+        key=ENV_ANSIBLE_CALLBACK_PLUGINS,
+        value='/existing/path:/custom/stats/path'
+    )
+
+
+def test_add_stats_plugins_path_idempotent(mocker, mock_config):
+    mock_plugins_module = mocker.MagicMock()
+    mock_plugins_module.get_path_callback.return_value = '/custom/stats/path'
+    mocker.patch.dict('sys.modules', {'oxl_ansible_executor_plugins': mock_plugins_module})
+
+    executor = ExecutorLocal(config=mock_config, run_id='123')
+    existing_env = {ENV_ANSIBLE_CALLBACK_PLUGINS: '/other/path:/custom/stats/path'}
+    executor.config.env_vars = existing_env.copy()
+
+    executor._add_stats_plugins_path()
+
+    # It shouldn't duplicate the injected path if it already exists
+    executor.config.add_to_dict.assert_called_once_with(
+        existing_env,
+        key=ENV_ANSIBLE_CALLBACK_PLUGINS,
+        value='/other/path:/custom/stats/path'
+    )

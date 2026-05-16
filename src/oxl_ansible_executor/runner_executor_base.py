@@ -8,6 +8,7 @@ from signal import SIGINT, SIGKILL, SIGTERM
 from utils.debug import log
 from utils.subps import ProcessResult
 from runner_config import ExecutionConfig
+from config import CALLBACK_PLUGIN_STATS_LIVE, CALLBACK_PLUGIN_STATS_RECAP, ENV_ANSIBLE_CALLBACKS_ENABLED
 
 
 class ExecutorBase(ABC):
@@ -60,6 +61,26 @@ class ExecutorBase(ABC):
                 key='ANSIBLE_FORCE_COLOR',
                 value='1',
             )
+
+        if self.config.stats_live or self.config.stats_recap:
+            self._enable_stats_plugins()
+
+    def _enable_stats_plugins(self):
+        ansible_callbacks = []
+        if self.config.env_vars is not None and ENV_ANSIBLE_CALLBACKS_ENABLED in self.config.env_vars:
+            ansible_callbacks = self.config.env_vars[ENV_ANSIBLE_CALLBACKS_ENABLED].split(',')
+
+        if self.config.stats_recap:
+            ansible_callbacks.append(CALLBACK_PLUGIN_STATS_RECAP)
+
+        if self.config.stats_live:
+            ansible_callbacks.append(CALLBACK_PLUGIN_STATS_LIVE)
+
+        self.config.env_vars = self.config.add_to_dict(
+            self.config.env_vars,
+            key=ENV_ANSIBLE_CALLBACKS_ENABLED,
+            value=','.join(ansible_callbacks),
+        )
 
     def execute(self):
         if self.config.debug:

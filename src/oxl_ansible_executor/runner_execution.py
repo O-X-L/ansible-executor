@@ -8,12 +8,13 @@ from shutil import chown, rmtree
 
 from runner_config import ExecutionConfig
 from exceptions import PreparationError
-from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, DEFAULT_LOG_DIR
 from runner_executor_local import ExecutorBase, ExecutorLocal
 from runner_executor_container import ExecutorContainerDocker, ExecutorContainerPodman
 from utils.debug import log
 from utils.util import get_random_str
-from utils.filesystem import write_file_with_mode, overwrite_and_delete_file
+from utils.filesystem import write_file_with_mode, overwrite_and_delete_file, get_file_opener_from_mode
+from config import CONTAINER_ENGINE_DOCKER, CONTAINER_ENGINE_PODMAN, DEFAULT_LOG_DIR, SELECTOR_STATS_RECAP_BEGIN, \
+    SELECTOR_STATS_LIVE_BEGIN
 
 from runner_execution_status import ExecutionStatus
 
@@ -149,6 +150,7 @@ class Execution:
         if self.config.debug:
             log('Post-execution tasks')
 
+        self._clean_stats_sections_from_stdout_log()
         self.cleanup()
 
     def _create_secret_pipes(self):
@@ -231,6 +233,37 @@ class Execution:
             os.remove(self._ssh_known_hosts_file)
 
         write_file_with_mode(file=self._ssh_known_hosts_file, content=ssh_known_hosts, file_mode=0o600)
+
+    def _clean_stats_sections_from_stdout_log(self):
+        if self.config.debug:
+            log('Cleaning stats-sections from log-files')
+
+        if self.config.stats_live:
+            self._clean_stats_sections_from_stdout_log_single(SELECTOR_STATS_LIVE_BEGIN)
+
+        if self.config.stats_recap:
+            self._clean_stats_sections_from_stdout_log_single(SELECTOR_STATS_RECAP_BEGIN)
+
+    def _clean_stats_sections_from_stdout_log_single(self, selector_begin: str):
+        tmp_log_file = f'{self.config.log_stdout_file}.tmp'
+        opener = get_file_opener_from_mode(self.config.log_file_mode)
+
+        try:
+            with (
+                open(self.config.log_stdout_file, 'r', encoding='utf-8') as infile,
+                open(tmp_log_file, 'w', encoding='utf-8', opener=opener) as outfile,
+            ):
+                for line in infile:
+                    if line.startswith(selector_begin):
+                        continue
+
+                    outfile.write(line)
+
+            os.replace(tmp_log_file, self.config.log_stdout_file)
+
+        except FileNotFoundError:
+            if os.path.exists(tmp_log_file):
+                os.remove(tmp_log_file)
 
     def cleanup(self):
         # is done automatically after:

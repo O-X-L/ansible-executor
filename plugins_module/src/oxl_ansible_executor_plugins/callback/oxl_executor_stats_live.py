@@ -5,10 +5,7 @@ from json import dumps as json_dumps
 
 from ansible.plugins.callback import CallbackBase
 from ansible.executor.task_result import TaskResult
-from ansible.executor.stats import AggregateStats
 
-SELECTOR_STATS_RECAP_BEGIN = '__AR_STATS_RECAP_BEGIN__'
-SELECTOR_STATS_RECAP_END = '__AR_STATS_RECAP_END__'
 SELECTOR_STATS_LIVE_BEGIN = '__AR_STATS_LIVE_BEGIN__'
 SELECTOR_STATS_LIVE_END = '__AR_STATS_LIVE_END__'
 
@@ -16,8 +13,8 @@ SELECTOR_STATS_LIVE_END = '__AR_STATS_LIVE_END__'
 class CallbackModule(CallbackBase):
     CALLBACK_VERSION = 2.0
     CALLBACK_TYPE = 'aggregate'
-    CALLBACK_NAME = 'ar_stats'
-    CALLBACK_NEEDS_WHITELIST = False
+    CALLBACK_NAME = 'oxl_executor_stats_live'
+    CALLBACK_NEEDS_WHITELIST = True
 
     def __init__(self):
         super().__init__()
@@ -44,15 +41,9 @@ class CallbackModule(CallbackBase):
             self._emit()
             self.last_emit_time = current_time
 
-    def _emit(self, recap: bool = False):
+    def _emit(self):
         payload = json_dumps(self.host_stats)
-
-        if recap:
-            stdout.write("\n" + SELECTOR_STATS_RECAP_BEGIN + payload + SELECTOR_STATS_RECAP_END + "\n")
-
-        else:
-            stdout.write("\n" + SELECTOR_STATS_LIVE_BEGIN + payload + SELECTOR_STATS_LIVE_END + "\n")
-
+        stdout.write("\n" + SELECTOR_STATS_LIVE_BEGIN + payload + SELECTOR_STATS_LIVE_END + "\n")
         stdout.flush()
 
     # pylint: disable=W0212
@@ -75,9 +66,3 @@ class CallbackModule(CallbackBase):
 
     def v2_runner_on_unreachable(self, result: TaskResult):
         self._update_and_maybe_emit(result._host.get_name(), 'unreachable')
-
-    def v2_playbook_on_stats(self, stats: AggregateStats):
-        for host in stats.processed.keys():
-            self.host_stats[host] = stats.summarize(host)
-
-        self._emit(recap=True)
