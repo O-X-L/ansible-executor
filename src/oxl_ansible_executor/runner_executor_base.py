@@ -140,7 +140,7 @@ class ExecutorBase(ABC):
 
                 # try to end ansible 'gracefully'
                 self._send_signal_to_ansible(SIGINT)
-                sleep(2)
+                sleep(5)
 
                 if self.result is None:
                     self._send_signal_to_ansible(SIGKILL)
