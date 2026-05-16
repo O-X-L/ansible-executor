@@ -172,6 +172,7 @@ class Process:
 
             self._result.rc = self.p.returncode
 
+            # pylint: disable=W0212
             if self.args.file_stdout is None:
                 self._result._stdout = b_stdout.decode('utf-8').strip()
 

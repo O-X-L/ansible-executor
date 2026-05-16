@@ -64,6 +64,8 @@ TESTS = [
             'output_color': False,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False, 'canceled': False},
@@ -77,6 +79,8 @@ TESTS = [
             'output_color': False,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': True, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -91,6 +95,8 @@ TESTS = [
             'output_color': False,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -103,6 +109,8 @@ TESTS = [
             'output_color': True,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -117,6 +125,8 @@ TESTS = [
             'output_color': False,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'blocking': False,
@@ -134,6 +144,8 @@ TESTS = [
             'output_color': False,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'blocking': True,
@@ -150,6 +162,8 @@ TESTS = [
             'output_color': False,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'blocking': True,
@@ -166,6 +180,8 @@ TESTS = [
             'output_color': False,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'blocking': True,
@@ -182,6 +198,8 @@ TESTS = [
             'connect_pass_file': CONNECT_PWD_FILE,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -196,6 +214,8 @@ TESTS = [
             'become_pass_file': BECOME_PWD_FILE,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -210,6 +230,8 @@ TESTS = [
             'ssh_key_file': SSH_KEY_FILE,
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -224,6 +246,8 @@ TESTS = [
             'connect_user': 'userConnect',
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -238,6 +262,8 @@ TESTS = [
             'become_user': 'userBecome',
             'containerized': TEST_CONTAINER,
             'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
         },
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
@@ -315,8 +341,11 @@ for test_nr, test in enumerate(TESTS):
 
             continue
 
+    status = e.status.to_dict()
+    ps_result = status['process_result']
+
     if 'in_stdout' in test:
-        if test['in_stdout'] not in e.status.process_result.stdout:
+        if ps_result is None or ps_result['stdout'] is None or test['in_stdout'] not in ps_result['stdout']:
             log(
                 f"[TEST-ERROR] Required output not found: '{test['in_stdout']}'"
             )
@@ -327,7 +356,7 @@ for test_nr, test in enumerate(TESTS):
             continue
 
     if 'in_stderr' in test:
-        if test['in_stderr'] not in e.status.process_result.stderr:
+        if ps_result is None or ps_result['stderr'] is None or test['in_stderr'] not in ps_result['stderr']:
             log(
                 f"[TEST-ERROR] Required error-output not found: '{test['in_stderr']}'"
             )
