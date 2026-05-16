@@ -6,7 +6,6 @@ from json import loads as json_loads
 from json import dumps as json_dumps, JSONDecodeError
 
 from utils.debug import log
-from utils.subps import ProcessResult
 from runner_config import ExecutionConfig
 from runner_executor_local import ExecutorBase
 from config import SELECTOR_STATS_LIVE_BEGIN, SELECTOR_STATS_RECAP_BEGIN, SELECTOR_STATS_RECAP_END, \
@@ -40,7 +39,8 @@ class ExecutionStatus:
     def __init__(self, config: ExecutionConfig):
         self._config: ExecutionConfig = config
         self.time_start = int(time())
-        self._executor: ExecutorBase = None
+        self._executor: (None, ExecutorBase) = None
+        self._cache_process_result: (None, dict) = None
         self._cache_stdout_lines: (None, list[str]) = None
         self._cache_stderr_lines: (None, list[str]) = None
         self._cache_last_stats: (None, dict) = None
@@ -89,11 +89,23 @@ class ExecutionStatus:
         return self._executor.result.rc
 
     @property
-    def process_result(self) -> (ProcessResult, None):
+    def process_result(self) -> (dict, None):
         if self._executor is None or self._executor.result is None:
             return None
 
-        return self._executor.result
+        if self._cache_process_result is not None:
+            return self._cache_process_result
+
+        result = self._executor.result.to_dict()
+        result['stdout_lines'] = self.stdout_lines
+        result['stdout'] = self.stdout
+        result['stderr_lines'] = self.stderr_lines
+        result['stderr'] = self.stderr
+
+        if self.finished:
+            self._cache_process_result = result
+
+        return result
 
     @property
     def finished(self) -> bool:
@@ -111,7 +123,7 @@ class ExecutionStatus:
         return self.process_rc != 0
 
     def _get_last_occurrence_in_logs(self, tail_line_count: int, line_start: str) -> (None, str):
-        have_process_stdout = self.process_result is not None and len(self.process_result.stdout_lines) > 0
+        have_process_stdout = self.process_result is not None and len(self.process_result['stdout_lines']) > 0
         have_log_file_stdout = self._config.log_stdout_file is not None
 
         if not have_process_stdout and not have_log_file_stdout:
@@ -120,7 +132,7 @@ class ExecutionStatus:
 
         lines_to_search = []
         if have_process_stdout:
-            lines_to_search = deque(self.process_result.stdout_lines, maxlen=tail_line_count)
+            lines_to_search = deque(self.process_result['stdout_lines'], maxlen=tail_line_count)
 
         else:
             with open(self._config.log_stdout_file, 'r', encoding='utf-8') as file:
@@ -309,17 +321,6 @@ class ExecutionStatus:
         return '\n'.join(stderr_lines)
 
     def to_dict(self) -> dict:
-        if self.process_result is not None:
-            process_result = self.process_result.to_dict().copy()
-
-        else:
-            process_result = {}
-
-        process_result['stdout_lines'] = self.stdout_lines
-        process_result['stdout'] = self.stdout
-        process_result['stderr_lines'] = self.stderr_lines
-        process_result['stderr'] = self.stderr
-
         return {
             'finished': self.finished,
             'playbook_finished': self.playbook_finished,
@@ -335,7 +336,7 @@ class ExecutionStatus:
             'ansible_command': self.ansible_command,
             'process_command': self.process_command,
             'process_rc': self.process_rc,
-            'process_result': process_result,
+            'process_result': self.process_result,
         }
 
     # pylint: disable=R0801
