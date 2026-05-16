@@ -8,7 +8,7 @@ authors = [
     {name = "Pascal Rath", email = "rath+ansibleexecutor@oxl.at"},
 ]
 description = "Ansible-Plugins for the Simple & Transparent Executor for Ansible-Playbooks"
-# readme = "README.md"
+readme = "README.md"
 requires-python = ">=3.11"
 keywords = ["ansible", "executor", "runner", "automation", "iac"]
 license = {file = "LICENSE.txt"}
