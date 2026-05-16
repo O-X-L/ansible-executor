@@ -142,8 +142,6 @@ e.run(blocking=True)
 # [DEBUG] Command: ['ssh-agent', 'sh', '-c', 'ssh-add /tmp/ar_znjp4bih/.fIWqfDljSw && /home/demo/.venv/bin/ansible-playbook -i inv/abc/hosts.yml -C -D -l srv1 --become-pass-file /tmp/ar_znjp4bih/.SHVTBTAgVJ --vault-pass-file /tmp/ar_znjp4bih/.GwGY8BnyF2 syslog.yml']
 # [DEBUG] Process finished
 # [DEBUG] Process exit-code: 0
-# [DEBUG] Process finished
-# [DEBUG] Process exit-code: 0
 # [DEBUG] Post-execution tasks
 # [DEBUG] Cleaning stats-sections from log-files
 
