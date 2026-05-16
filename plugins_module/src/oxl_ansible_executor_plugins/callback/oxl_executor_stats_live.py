@@ -29,10 +29,10 @@ class CallbackModule(CallbackBase):
 
     def _update_and_maybe_emit(self, host, status):
         if host not in self.host_stats:
-            self.host_stats[host] = {
-                'ok': 0, 'changed': 0, 'unreachable': 0,
-                'failures': 0, 'skipped': 0, 'rescued': 0, 'ignored': 0
-            }
+            self.host_stats[host] = {}
+
+        if status not in self.host_stats[host]:
+            self.host_stats[host][status] = 0
 
         self.host_stats[host][status] += 1
 
