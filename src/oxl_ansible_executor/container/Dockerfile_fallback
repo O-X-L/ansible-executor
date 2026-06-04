@@ -5,7 +5,7 @@ ARG AR_USER=ar
 ARG AR_HOME=/home/ansible-executor
 ARG AR_PY_VER=3.14  # Python3-version; has to match image
 
-RUN apk add --update --no-cache git git-lfs openssh-client sshpass openssl >/dev/null && \
+RUN apk add --update --no-cache git git-lfs openssh-client sshpass openssl zip >/dev/null && \
     adduser --uid ${AR_UID} --home ${AR_HOME} --shell /usr/sbin/nologin --disabled-password ${AR_USER} ${AR_USER} && \
     mkdir -p /run/ansible && \
     chown -R ${AR_USER}:${AR_USER} /run/ansible
