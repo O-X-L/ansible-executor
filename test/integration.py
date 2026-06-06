@@ -18,6 +18,7 @@ LOG_VERBOSE = environ.get('AR_TEST_VERBOSE', '1') == '1'  # set env-var to 0 to 
 environ.setdefault('ANSIBLE_LOCALHOST_WARNING', '0')
 
 SSH_KEY_FILE = mktemp(prefix='ar_test_')
+SSH_KNOWN_HOSTS_FILE = mktemp(prefix='ar_test_')
 CONNECT_PWD_FILE = mktemp(prefix='ar_test_')
 BECOME_PWD_FILE = mktemp(prefix='ar_test_')
 VAULT_PWD_FILE = mktemp(prefix='ar_test_')
@@ -31,6 +32,12 @@ AAAEAJ5zfDQBaEbidne6fHzaTif4Rdud5vveMfveWVx72G4rHTkTQcXEIou93qF70Sm9Ce
 -----END OPENSSH PRIVATE KEY-----
 ''')  # NOTE: this is a dummy-key just created for this test
 
+with open(SSH_KNOWN_HOSTS_FILE, 'wb') as f:
+    f.write(b'''
+Host test.oxl.app
+  User test
+''')
+
 with open(CONNECT_PWD_FILE, 'wb') as f:
     f.write(b'connect-placeholder')
 
@@ -43,6 +50,7 @@ with open(VAULT_PWD_FILE, 'wb') as f:
 
 def cleanup_tmpfiles():
     remove_file(SSH_KEY_FILE)
+    remove_file(SSH_KNOWN_HOSTS_FILE)
     remove_file(CONNECT_PWD_FILE)
     remove_file(BECOME_PWD_FILE)
     remove_file(VAULT_PWD_FILE)
@@ -268,6 +276,24 @@ TESTS = [
         'exception': None,
         'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
         'in_cmd': ['--become-user userBecome'],
+    },
+    {
+        'name': 'Using ssh-known-hosts-file (without requiring it)',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': False,
+            'ssh_known_hosts_file': SSH_KNOWN_HOSTS_FILE,
+            'containerized': TEST_CONTAINER,
+            'container_engine': TEST_CONTAINER_ENGINE,
+            'load_log_stdout': True,
+            'load_log_stderr': True,
+        },
+        'exception': None,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_cmd': [
+            f'-o UserKnownHostsFile={SSH_KNOWN_HOSTS_FILE}' if not TEST_CONTAINER else '-o UserKnownHostsFile=/run/ssh_known_hosts'
+        ],
     },
 ]
 

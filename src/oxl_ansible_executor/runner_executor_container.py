@@ -23,7 +23,7 @@ class ExecutorContainer(ExecutorBase):
         'pipe_connect_pass': f'/run/.{get_random_str(10)}',
         'pipe_become_pass': f'/run/.{get_random_str(10)}',
         'pipe_vault_pass': f'/run/.{get_random_str(10)}',
-        'ssh_known_hosts_file': f'/run/.{get_random_str(10)}',
+        'ssh_known_hosts_file': '/run/ssh_known_hosts',
     }
 
     def _engine_init(
@@ -110,13 +110,12 @@ class ExecutorContainer(ExecutorBase):
 
         if self.config.ssh_known_hosts_file is not None:
             ssh_kh_str = str(self.config.ssh_known_hosts_file)
-            if ssh_kh_str.startswith('/'):
-                volumes[ssh_kh_str] = self.CONTAINER_PATHS['ssh_known_hosts_file']
-                if self.config.debug:
-                    log(
-                        f"  {self.config.ssh_known_hosts_file} => {self.CONTAINER_PATHS['ssh_known_hosts_file']} "
-                        "(ssh-known-hosts)"
-                    )
+            volumes[ssh_kh_str] = self.CONTAINER_PATHS['ssh_known_hosts_file']
+            if self.config.debug:
+                log(
+                    f"  {self.config.ssh_known_hosts_file} => {self.CONTAINER_PATHS['ssh_known_hosts_file']} "
+                    "(ssh-known-hosts)"
+                )
 
         return volumes
 
@@ -153,12 +152,7 @@ class ExecutorContainer(ExecutorBase):
             paths['pipe_vault_pass'] = self.CONTAINER_PATHS['pipe_vault_pass']
 
         if self.config.ssh_known_hosts_file is not None:
-            ssh_kh_str = str(self.config.ssh_known_hosts_file)
-            if ssh_kh_str in self._container_volumes:
-                paths['ssh_known_hosts_file'] = self._container_volumes[ssh_kh_str]
-
-            else:
-                paths['ssh_known_hosts_file'] = ssh_kh_str
+            paths['ssh_known_hosts_file'] = self.CONTAINER_PATHS['ssh_known_hosts_file']
 
         return paths
 

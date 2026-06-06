@@ -59,7 +59,6 @@ class Execution:
         self.__secret_pipe_connect_pass = self._get_secret_pipe_or_none(self.config._connect_pass)
         self.__secret_pipe_become_pass = self._get_secret_pipe_or_none(self.config._become_pass)
         self.__secret_pipe_vault_pass = self._get_secret_pipe_or_none(self.config._vault_pass)
-        self._ssh_known_hosts_file = self._get_secret_pipe_or_none(self.config.ssh_known_hosts_file)
         self._secret_pipe_threads = []
 
         self._get_executor()
@@ -112,7 +111,6 @@ class Execution:
         return None
 
     def _before(self):
-        self._copy_ssh_known_hosts_file()
         self._create_log_files()
         self._prepare_executor()
         self._create_secret_pipes()
@@ -219,21 +217,6 @@ class Execution:
             except LookupError:
                 raise PreparationError("Provided 'log_file_owner_group' does not exist!")
 
-    def _copy_ssh_known_hosts_file(self):
-        if self.config.ssh_known_hosts_file is None:
-            return
-
-        if self.config.debug:
-            log('Copying SSH-known-hosts file')
-
-        with open(self.config.ssh_known_hosts_file, 'r', encoding='utf-8') as f:
-            ssh_known_hosts = f.read()
-
-        if self._ssh_known_hosts_file.exists():
-            os.remove(self._ssh_known_hosts_file)
-
-        write_file_with_mode(file=self._ssh_known_hosts_file, content=ssh_known_hosts, file_mode=0o600)
-
     def _clean_stats_sections_from_stdout_log(self):
         if self.config.debug:
             log('Cleaning stats-sections from log-files')
@@ -294,7 +277,6 @@ class Execution:
         overwrite_and_delete_file(self.__secret_pipe_ssh_key)
         overwrite_and_delete_file(self.__secret_pipe_connect_pass)
         overwrite_and_delete_file(self.__secret_pipe_become_pass)
-        overwrite_and_delete_file(self._ssh_known_hosts_file)
         if self._cleanup_run_dir:
             rmtree(self.config.run_dir)
 
