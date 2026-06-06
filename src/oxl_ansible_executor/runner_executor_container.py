@@ -89,33 +89,36 @@ class ExecutorContainer(ExecutorBase):
                         log(f"  {iv_str} => {iv_inside} (inventory)")
 
         if pipe_ssh_key is not None:
-            volumes[str(pipe_ssh_key)] = self.CONTAINER_PATHS['pipe_ssh_key']
+            volumes[str(pipe_ssh_key)] = f"{self.CONTAINER_PATHS['pipe_ssh_key']}:ro"
             if self.config.debug:
                 log(f"  {pipe_ssh_key} => {self.CONTAINER_PATHS['pipe_ssh_key']} (ssh-key)")
 
         if pipe_connect_pass is not None:
-            volumes[str(pipe_connect_pass)] = self.CONTAINER_PATHS['pipe_connect_pass']
+            volumes[str(pipe_connect_pass)] = f"{self.CONTAINER_PATHS['pipe_connect_pass']}:ro"
             if self.config.debug:
                 log(f"  {pipe_connect_pass} => {self.CONTAINER_PATHS['pipe_connect_pass']} (connect-pass)")
 
         if pipe_become_pass is not None:
-            volumes[str(pipe_become_pass)] = self.CONTAINER_PATHS['pipe_become_pass']
+            volumes[str(pipe_become_pass)] = f"{self.CONTAINER_PATHS['pipe_become_pass']}:ro"
             if self.config.debug:
                 log(f"  {pipe_become_pass} => {self.CONTAINER_PATHS['pipe_become_pass']} (become-pass)")
 
         if pipe_vault_pass is not None:
-            volumes[str(pipe_vault_pass)] = self.CONTAINER_PATHS['pipe_vault_pass']
+            volumes[str(pipe_vault_pass)] = f"{self.CONTAINER_PATHS['pipe_vault_pass']}:ro"
             if self.config.debug:
                 log(f"  {pipe_vault_pass} => {self.CONTAINER_PATHS['pipe_vault_pass']} (vault-pass)")
 
         if self.config.ssh_known_hosts_file is not None:
             ssh_kh_str = str(self.config.ssh_known_hosts_file)
-            volumes[ssh_kh_str] = self.CONTAINER_PATHS['ssh_known_hosts_file']
+            volumes[ssh_kh_str] = f"{self.CONTAINER_PATHS['ssh_known_hosts_file']}:ro"
             if self.config.debug:
                 log(
                     f"  {self.config.ssh_known_hosts_file} => {self.CONTAINER_PATHS['ssh_known_hosts_file']} "
                     "(ssh-known-hosts)"
                 )
+
+        for path_host, path_container in self.config.container_volumes.items():
+            volumes[str(path_host)] = str(path_container)
 
         return volumes
 
@@ -256,9 +259,12 @@ class ExecutorContainer(ExecutorBase):
     def _generate_container_args_volumes(self) -> list[str]:
         args = []
         for path_host, path_container in self._container_volumes.items():
+            if str(path_container).find(':') == -1:
+                path_container = f'{path_container}:{self.config.container_volume_options}'
+
             args.extend([
                 '-v',
-                f"{path_host}:{path_container}:ro",
+                f"{path_host}:{path_container}",
             ])
 
         return args

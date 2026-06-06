@@ -2,11 +2,12 @@
 
 from time import sleep
 from pathlib import Path
-from tempfile import mktemp
-from os import environ
+from tempfile import mktemp, mkdtemp
+from os import environ, mkdir
 from os import remove as remove_file
 from sys import exit as sys_exit
 from atexit import register as run_at_exit
+from shutil import rmtree
 
 from oxl_ansible_executor import Execution, ExecutionConfig, \
     ConfigError, SetupError, PreparationError, ExecutionError
@@ -22,6 +23,7 @@ SSH_KNOWN_HOSTS_FILE = mktemp(prefix='ar_test_')
 CONNECT_PWD_FILE = mktemp(prefix='ar_test_')
 BECOME_PWD_FILE = mktemp(prefix='ar_test_')
 VAULT_PWD_FILE = mktemp(prefix='ar_test_')
+ADDITIONAL_CONTAINER_VOLUME = mkdtemp(prefix='ar_test_')
 with open(SSH_KEY_FILE, 'wb') as f:
     f.write(b'''-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
@@ -48,12 +50,16 @@ with open(VAULT_PWD_FILE, 'wb') as f:
     f.write(b'SuperSecret!')
 
 
+with open(ADDITIONAL_CONTAINER_VOLUME + '/test.txt', 'wb') as f:
+    f.write(b'Test')
+
 def cleanup_tmpfiles():
     remove_file(SSH_KEY_FILE)
     remove_file(SSH_KNOWN_HOSTS_FILE)
     remove_file(CONNECT_PWD_FILE)
     remove_file(BECOME_PWD_FILE)
     remove_file(VAULT_PWD_FILE)
+    rmtree(ADDITIONAL_CONTAINER_VOLUME)
 
 
 run_at_exit(cleanup_tmpfiles)
@@ -295,6 +301,29 @@ TESTS = [
             f'-o UserKnownHostsFile={SSH_KNOWN_HOSTS_FILE}' if not TEST_CONTAINER else '-o UserKnownHostsFile=/run/ssh_known_hosts'
         ],
     },
+    {
+        'name': 'With user-supplied container-volume & container-volume-option-override',
+        'config': {
+            'playbook_dir': PATH_TESTDATA,
+            'playbook_file': 'play1.yml',
+            'output_color': False,
+            'ssh_known_hosts_file': SSH_KNOWN_HOSTS_FILE,
+            'containerized': True,
+            'container_engine': TEST_CONTAINER_ENGINE,
+            'container_volumes': {
+                ADDITIONAL_CONTAINER_VOLUME: '/run/additional:rw,z'
+            },
+            'container_volume_options': 'rw',
+            'load_log_stdout': True,
+            'load_log_stderr': True,
+        },
+        'exception': None,
+        'result': {'failed': False, 'finished': True, 'playbook_finished': True, 'timed_out': False},
+        'in_cmd': [
+            f'{PATH_TESTDATA}:/run/ansible:rw',
+            f'{ADDITIONAL_CONTAINER_VOLUME}:/run/additional:rw,z',
+        ],
+    },
 ]
 
 # TEST LOGIC
@@ -315,6 +344,10 @@ def test_failure(nr: int):
 for test_nr, test in enumerate(TESTS):
     log('####################')
     log(f"[TEST-INFO] TEST: '{test['name']}'")
+
+    if not TEST_CONTAINER and test['config'].get('containerized', False):
+        log("[TEST-INFO] SKIPPING: CONTAINER ONLY")
+        continue
 
     try:
         log('[TEST-INFO] Init config')

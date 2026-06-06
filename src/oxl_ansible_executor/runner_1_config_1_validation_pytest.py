@@ -50,6 +50,23 @@ from oxl_ansible_executor.runner_0_base_pytest import PATH_TEST, run_before_and_
         ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'vault_pass_file': '/tmp/does-not-exist'}),
         ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'containerized': True, 'container_engine': 'nope'}),
         ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'containerized': True, 'container_engine': 'dummy'}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volume_options': False}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volume_options': 'ro:test:abc'}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volumes': {
+            Path('additional1'): Path('/run/additional1'),
+        }}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volumes': {
+            Path('/tmp/additional1'): Path('additional1'),
+        }}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volumes': {
+            'additional1': '/run/additional1',
+        }}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volumes': {
+            '/tmp/additional1': 'additional1',
+        }}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volumes': {
+            '/tmp/additional1': '/run/additional1:rw:test',
+        }}),
     ]
 )
 def test_runner_config_validation_failures(kwargs: dict, mocker):
@@ -85,6 +102,13 @@ def test_runner_config_validation_failures(kwargs: dict, mocker):
         ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'containerized': True}),
         ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'containerized': True, 'container_engine': 'podman'}),
         ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'containerized': True, 'container_engine': 'docker'}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volume_options': 'rw'}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volume_options': 'ro,z'}),
+        ({'playbook_file': 'test.yml', 'playbook_dir': PATH_TEST, 'container_volumes': {
+              Path('/tmp/additional1'): Path('/run/additional1'),
+              '/tmp/additional2': '/run/additional2',
+              '/tmp/additional3': '/run/additional3:rw',
+          }}),
     ]
 )
 def test_runner_config_validation_success(kwargs: dict):

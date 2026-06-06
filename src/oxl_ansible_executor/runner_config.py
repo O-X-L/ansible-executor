@@ -209,6 +209,20 @@ class ExecutionConfig:
             Optionally set the container-engine-network that should be used for the ansible-executor container.
             See: '--network' container-engine-option
 
+        container_volumes:
+            Optionally provide additional volumes to be mounted from the host-system to the ansible-executor container.
+            Key-Value-pairs where the key is the absolute path on the host-system and the value the absolute path inside
+            the container.
+            By default, these 'mounts' use the option as defined by container_volume_options (ro - read only). But you
+            are able to add a volume-specific override for that option as appendix to the container-path - like ":rw"
+            for read-write.
+            See: '--volume' container-engine-option
+
+        container_volume_options:
+            The volume-options the volumes like playbook_dir and inventory_files should be 'mounted' with.
+            Default: 'ro' (read-only)
+            See: '--volume' container-engine-option
+
         timeout_sec_run:
             Maximum time in seconds that an ansible-playbook execution is allowed to run.
             By default, 1 hour (3600s) is defined.
@@ -299,6 +313,8 @@ class ExecutionConfig:
             container_image: str = None,
             container_image_pull: bool = False,
             container_network: str = None,
+            container_volumes: dict = None,
+            container_volume_options: str = 'ro',
             timeout_sec_run: int = 60 * 60,
             timeout_sec_start: int = 5 * 60,
             timeout_container_image_pull_build: int = 3 * 60,
@@ -369,6 +385,8 @@ class ExecutionConfig:
         self.container_image: str = self._build_container_image(container_image)
         self.container_image_pull: bool = container_image_pull
         self.container_network: (str, None) = container_network
+        self.container_volumes: (dict, None) = container_volumes
+        self.container_volume_options: str = container_volume_options
         self.timeout_sec_run: int = timeout_sec_run
         self.timeout_sec_start: int = timeout_sec_start
         self.timeout_container_image_pull_build: int = timeout_container_image_pull_build
@@ -402,6 +420,8 @@ class ExecutionConfig:
         self._validate_times()
         self._validate_log_file_settings()
         self._validate_cmd_args()
+        self._validate_container_volumes()
+        self._validate_container_volume_options()
 
         # todo: schema-validation of string-values
 
@@ -792,10 +812,59 @@ class ExecutionConfig:
             self.cmd_args = None
             return
 
-        if not isinstance(self.cmd_args[0], str):
-            raise ConfigError(
-                f"Got bad type for 'cmd_args' values: '{type(self.cmd_args)} => {type(self.cmd_args[0])}' "
-                f"(should be list[str])",
-            )
+        for value in self.cmd_args:
+            if not isinstance(value, str):
+                raise ConfigError(
+                    f"Got bad type for 'cmd_args' values: '{type(self.cmd_args)} => {type(value)}' "
+                    f"(should be list[str])",
+                )
 
         # todo: warn if args with built-in support are used via cmd_args instead
+
+    def _validate_container_volumes(self):
+        if self.container_volumes is None:
+            self.container_volumes = {}
+            return
+
+        if not isinstance(self.container_volumes, dict):
+            raise ConfigError(
+                f"Got bad type for 'container_volumes': '{type(self.container_volumes)}' "
+                "(should be dict[(str, Path), (str, Path)])",
+            )
+
+        if len(self.container_volumes) == 0:
+            return
+
+        for key, value in self.container_volumes.items():
+            if not isinstance(key, (str, Path)):
+                raise ConfigError(
+                    f"Got bad type for 'container_volumes' keys: '{type(self.cmd_args)} => {type(key)}' "
+                    "(should be dict[(str, Path), (str, Path)])",
+                )
+
+            if not isinstance(value, (str, Path)):
+                raise ConfigError(
+                    f"Got bad type for 'container_volumes' values: '{type(self.cmd_args)} => {type(value)}' "
+                    "(should be dict[(str, Path), (str, Path)])",
+                )
+
+            if len(str(value).split(':')) > 2:
+                raise ConfigError("Too many mount-options for 'container_volumes' values provided")
+
+            if not str(key).startswith('/') or not str(value).startswith('/'):
+                raise ConfigError("Paths for 'container_volumes' have to be absolute")
+
+    def _validate_container_volume_options(self):
+        if self.container_volume_options is None:
+            self.container_volume_options = 'ro'
+            return
+
+        if not isinstance(self.container_volume_options, str):
+            raise ConfigError(
+                f"Got bad type for 'container_volume_options': '{type(self.container_volume_options)}' (should be str)",
+            )
+
+        if self.container_volume_options.find(':') != -1:
+            raise ConfigError("Got invalid character ':' for 'container_volume_options' value")
+
+        # todo: further validation (https://docs.docker.com/engine/storage/bind-mounts/#options-for---volume)

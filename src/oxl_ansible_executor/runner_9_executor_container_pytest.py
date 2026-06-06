@@ -33,6 +33,8 @@ def mock_config(mocker):
     config.log_stderr_file = None
     config.container_network = None
     config.container_engine = 'docker'
+    config.container_volumes = {}
+    config.container_volume_options = 'ro'
     config.container_image_pull = False
     config.timeout_container_image_pull_build = 300
     config.timeout_sec_run = 3600
@@ -64,9 +66,9 @@ def test_build_container_volumes(mock_config):
     assert volumes['/opt/playbooks/inv'] == f"{executor.CONTAINER_PATHS['inventory_files']}/0"
     assert volumes['/etc/ansible/hosts'] == f"{executor.CONTAINER_PATHS['inventory_files']}/1"
 
-    assert volumes['/tmp/ssh_key'] == executor.CONTAINER_PATHS['pipe_ssh_key']
-    assert volumes['/tmp/conn_pass'] == executor.CONTAINER_PATHS['pipe_connect_pass']
-    assert volumes['/home/user/.ssh/known_hosts'] == executor.CONTAINER_PATHS['ssh_known_hosts_file']
+    assert volumes['/tmp/ssh_key'] == f"{executor.CONTAINER_PATHS['pipe_ssh_key']}:ro"
+    assert volumes['/tmp/conn_pass'] == f"{executor.CONTAINER_PATHS['pipe_connect_pass']}:ro"
+    assert volumes['/home/user/.ssh/known_hosts'] == f"{executor.CONTAINER_PATHS['ssh_known_hosts_file']}:ro"
 
 
 def test_build_paths_inside_container(mock_config):
@@ -286,3 +288,26 @@ def test_create_process(mocker, mock_config):
     mock_process_class.assert_called_once()
     assert mock_process_class.call_args[1]['cmd'] == ['dummy', 'cmd']
     assert mock_process_class.call_args[1]['args'].cwd == mock_config.run_dir
+
+
+def test_user_supplied_container_volumes(mocker, mock_config):
+    mock_config.container_volume_options = 'ro'
+    mock_config.container_volumes = {
+        Path('/tmp/additional_1'): Path('/run/ansible_additional_1'),
+        '/tmp/additional_2': '/run/ansible_additional_2',
+        '/tmp/additional_3': '/run/ansible_additional_3:rw,z',
+    }
+
+    mocker.patch.object(ExecutorContainerDocker, '_build_engine_executable', return_value='docker')
+    executor = ExecutorContainerDocker(config=mock_config, run_id='123')
+
+    # Simulate _engine_init pre-computation
+    executor._env_var_file = Path('/tmp/run_123/.env')
+    executor.ansible_command = ['ansible-playbook', 'test.yml']
+    executor._container_name = 'ansible-executor-123'
+
+    cmd = executor.generate_engine_command()
+
+    assert '/tmp/additional_1:/run/ansible_additional_1:ro' in cmd
+    assert '/tmp/additional_2:/run/ansible_additional_2:ro' in cmd
+    assert '/tmp/additional_3:/run/ansible_additional_3:rw,z' in cmd
