@@ -3,7 +3,7 @@
 from time import sleep
 from pathlib import Path
 from tempfile import mktemp, mkdtemp
-from os import environ, mkdir
+from os import environ
 from os import remove as remove_file
 from sys import exit as sys_exit
 from atexit import register as run_at_exit
